@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { deleteItinerary, getItineraryById } from '../../services/itinerary';
 import Header from '../../components/common/Header';
 import Card from '../../components/common/Card';
@@ -25,9 +26,10 @@ type DetailRoute = RouteProp<ItineraryStackParamList, 'ItineraryDetail'>;
 export default function ItineraryDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<DetailRoute>();
-  const { itineraryData, savedId, title } = route.params;
-  const data = itineraryData;
   const { user } = useAuth();
+  const { t, language } = useTranslation();
+  const { itineraryData, itineraryDataEn, savedId, title } = route.params;
+  const data = language === 'en' && itineraryDataEn ? itineraryDataEn : itineraryData;
 
   const handleEdit = async () => {
     if (!savedId) return;
@@ -37,26 +39,26 @@ export default function ItineraryDetailScreen() {
         navigation.navigate('ItineraryCreate', { editData: saved });
       }
     } catch {
-      Alert.alert('错误', '无法加载行程数据');
+      Alert.alert(t.common.loading, t.itinerary.detailLoadError);
     }
   };
 
   const handleDelete = () => {
     if (!savedId) return;
     Alert.alert(
-      '删除行程',
-      '确定要删除此行程吗？此操作不可撤销。',
+      t.itinerary.detailDelete,
+      t.itinerary.detailDeleteConfirm,
       [
-        { text: '取消', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: '删除',
+          text: t.common.delete,
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteItinerary(savedId);
               navigation.goBack();
             } catch {
-              Alert.alert('错误', '删除失败，请重试');
+              Alert.alert(t.common.loading, t.itinerary.error.generationFailed);
             }
           },
         },
@@ -66,7 +68,7 @@ export default function ItineraryDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title={title || '行程详情'} showBack />
+      <Header title={title || t.itinerary.detail} showBack />
 
       <ScrollView
         style={styles.scroll}
@@ -85,25 +87,25 @@ export default function ItineraryDetailScreen() {
 
         {/* Daily Schedule Timeline */}
         <View style={styles.section}>
-          <ItineraryTimeline days={data.days} />
+          <ItineraryTimeline days={data.days} title={t.itinerary.detail} />
         </View>
 
         {/* Transport */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>交通</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.detailTransport}</Text>
           <Card>
             <View style={styles.transportItem}>
-              <Text style={styles.transportLabel}>🚄 去程</Text>
+              <Text style={styles.transportLabel}>→ {t.itinerary.detailTransportTo}</Text>
               <Text style={styles.transportDetail}>{data.transport.to}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.transportItem}>
-              <Text style={styles.transportLabel}>🚌 当地</Text>
+              <Text style={styles.transportLabel}>· {t.itinerary.detailTransportLocal}</Text>
               <Text style={styles.transportDetail}>{data.transport.local}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.transportItem}>
-              <Text style={styles.transportLabel}>🚄 返程</Text>
+              <Text style={styles.transportLabel}>→ {t.itinerary.detailTransportBack}</Text>
               <Text style={styles.transportDetail}>{data.transport.back}</Text>
             </View>
           </Card>
@@ -111,7 +113,7 @@ export default function ItineraryDetailScreen() {
 
         {/* Hotel */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>住宿</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.detailHotel}</Text>
           {data.hotel.map((h, idx) => (
             <Card key={idx} style={styles.hotelCard}>
               <Text style={styles.hotelName}>{h.name}</Text>
@@ -126,7 +128,7 @@ export default function ItineraryDetailScreen() {
 
         {/* Food */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>美食</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.detailFood}</Text>
           {data.food.map((f, idx) => (
             <Card key={idx} style={styles.foodCard}>
               <Text style={styles.foodName}>{f.name}</Text>
@@ -138,7 +140,7 @@ export default function ItineraryDetailScreen() {
 
         {/* Venue Tips */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>场馆贴士</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.detailVenueTips}</Text>
           <Card>
             {data.venueTips.map((tip, idx) => (
               <View key={idx} style={styles.tipItem}>
@@ -151,17 +153,17 @@ export default function ItineraryDetailScreen() {
 
         {/* Budget */}
         <View style={styles.section}>
-          <BudgetBreakdown budget={data.budget} />
+          <BudgetBreakdown budget={data.budget} title={t.itinerary.budgetSection} totalLabel={language === 'zh' ? '总计：' : 'Total: '} />
         </View>
 
         {/* Notes */}
         {data.notes.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>重要提醒</Text>
+            <Text style={styles.sectionTitle}>{t.itinerary.detailReminders}</Text>
             <Card>
               {data.notes.map((note, idx) => (
                 <View key={idx} style={styles.tipItem}>
-                  <Text style={styles.tipBullet}>⚠️</Text>
+                  <Text style={styles.tipBullet}>!</Text>
                   <Text style={styles.tipText}>{note}</Text>
                 </View>
               ))}
@@ -173,7 +175,7 @@ export default function ItineraryDetailScreen() {
         {savedId && (
           <View style={styles.actionRow}>
             <Button
-              title="编辑行程"
+              title={t.itinerary.detailEdit}
               onPress={handleEdit}
               variant="outline"
               fullWidth={false}
@@ -184,7 +186,7 @@ export default function ItineraryDetailScreen() {
               onPress={handleDelete}
               activeOpacity={0.7}
             >
-              <Text style={styles.deleteButtonText}>删除行程</Text>
+              <Text style={styles.deleteButtonText}>{t.itinerary.detailDelete}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.xxl,
     padding: spacing.xl,
-    borderRadius: 20,
+    borderRadius: borderRadius.xxl,
   },
   overviewText: {
     fontSize: fontSize.md,
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     flex: 1,
     height: 52,
-    borderRadius: 26,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

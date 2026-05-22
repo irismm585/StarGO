@@ -70,47 +70,78 @@ async function createChatCompletion(
   return content;
 }
 
-const ITINERARY_SYSTEM_PROMPT = `你是专业的「演出/赛事行程规划师」，擅长演唱会、音乐节、体育赛事的跨城行程。
+const ITINERARY_BILINGUAL_SYSTEM_PROMPT = `你是专业的「演出/赛事行程规划师」，擅长演唱会、音乐节、体育赛事的跨城行程。
 严格按 JSON 输出，不要任何解释、不要 markdown、不要多余文字。
 
 输入：用户的出行需求（出发城市、目的地城市、演出日期、出行日期、预算、交通偏好、住宿要求、美食偏好）
 注意：演唱会日期可能和用户的抵达/离开日期不同。请确保演唱会当天的行程空出足够时间给演出，并在演出前安排进场时间。
 
-输出结构：
+请同时输出中文和英文两个版本。输出结构：
 {
-  "overview": "行程总览（1句话，含天数、核心安排）",
-  "days": [
-    {
-      "day": "第X天",
-      "date": "YYYY-MM-DD",
-      "schedule": [
-        {
-          "time": "HH:MM",
-          "activity": "活动名称",
-          "location": "地点",
-          "details": "详情",
-          "tips": "小贴士"
-        }
-      ]
-    }
-  ],
-  "transport": {
-    "to": "去程交通推荐",
-    "local": "当地交通",
-    "back": "返程交通推荐"
+  "zh": {
+    "overview": "行程总览（1句话，含天数、核心安排）",
+    "days": [
+      {
+        "day": "第X天",
+        "date": "YYYY-MM-DD",
+        "schedule": [
+          {
+            "time": "HH:MM",
+            "activity": "活动名称",
+            "location": "地点",
+            "details": "详情",
+            "tips": "小贴士"
+          }
+        ]
+      }
+    ],
+    "transport": {
+      "to": "去程交通推荐",
+      "local": "当地交通",
+      "back": "返程交通推荐"
+    },
+    "hotel": [{"name":"","address":"","price":"","reason":""}],
+    "food": [{"name":"","address":"","recommendation":""}],
+    "venueTips": ["演出场馆注意事项"],
+    "budget": {"total":"","breakdown":{}},
+    "notes": ["重要提醒"]
   },
-  "hotel": [{"name":"","address":"","price":"","reason":""}],
-  "food": [{"name":"","address":"","recommendation":""}],
-  "venueTips": ["演出场馆注意事项"],
-  "budget": {"total":"","breakdown":{}},
-  "notes": ["重要提醒"]
+  "en": {
+    "overview": "Trip overview (1 sentence, including number of days and key activities)",
+    "days": [
+      {
+        "day": "Day X",
+        "date": "YYYY-MM-DD",
+        "schedule": [
+          {
+            "time": "HH:MM",
+            "activity": "Activity name",
+            "location": "Location",
+            "details": "Details",
+            "tips": "Tips"
+          }
+        ]
+      }
+    ],
+    "transport": {
+      "to": "Departure transport recommendation",
+      "local": "Local transport",
+      "back": "Return transport recommendation"
+    },
+    "hotel": [{"name":"","address":"","price":"","reason":""}],
+    "food": [{"name":"","address":"","recommendation":""}],
+    "venueTips": ["Venue tips"],
+    "budget": {"total":"","breakdown":{}},
+    "notes": ["Important reminders"]
+  }
 }`;
 
 export async function generateItinerary(
   params: ItineraryGenerationParams,
+  _language?: 'zh' | 'en',
   signal?: AbortSignal,
-): Promise<Itinerary> {
-  const userPrompt = `请为以下演出行程生成完整规划：
+): Promise<{ zh: Itinerary; en: Itinerary }> {
+  const userPrompt = `请为以下演出行程生成完整规划（中英文双语）：
 - 演出名称：${params.eventName}
 - 场馆：${params.venueName}
 - 出发城市：${params.departureCity}
@@ -120,11 +151,23 @@ export async function generateItinerary(
 - 预算：${params.budget}元
 - 交通偏好：${params.transportPref}
 - 住宿要求：${params.hotelPref}
-- 美食偏好：${params.foodPref}`;
+- 美食偏好：${params.foodPref}
+
+Please generate a complete bilingual (Chinese & English) trip plan for the following event:
+- Event: ${params.eventName}
+- Venue: ${params.venueName}
+- Departure city: ${params.departureCity}
+- Destination city: ${params.city}
+- Event date: ${params.eventDate}
+- Travel dates: ${params.startDate} to ${params.endDate}
+- Budget: ${params.budget} CNY
+- Transport preference: ${params.transportPref}
+- Hotel requirement: ${params.hotelPref}
+- Food preference: ${params.foodPref}`;
 
   const raw = await createChatCompletion(
     [
-      { role: 'system', content: ITINERARY_SYSTEM_PROMPT },
+      { role: 'system', content: ITINERARY_BILINGUAL_SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
     ],
     { signal },
@@ -133,37 +176,57 @@ export async function generateItinerary(
   const sanitized = raw.replace(/#"/g, '"');
 
   try {
-    const parsed = JSON.parse(sanitized) as Itinerary;
+    const parsed = JSON.parse(sanitized) as { zh: Itinerary; en: Itinerary };
+    if (!parsed.zh || !parsed.en) {
+      throw new DeepSeekError('Missing zh or en in bilingual itinerary response');
+    }
     return parsed;
   } catch (e) {
+    if (e instanceof DeepSeekError) throw e;
     throw new DeepSeekError(`Failed to parse itinerary JSON: ${(e as Error).message}. Raw: ${raw.slice(0, 200)}`);
   }
 }
 
-const MEMORIAL_SYSTEM_PROMPT = `你是 StarGo 的创意文案助手，专为演唱会、音乐节、体育赛事观众生成朋友圈/社交媒体文案。
+const MEMORIAL_BILINGUAL_SYSTEM_PROMPT = `你是 StarGo 的创意文案助手，专为演唱会、音乐节、体育赛事观众生成朋友圈/社交媒体文案。
 以粉丝口吻写作，年轻、热情、有感染力。
 严格按 JSON 输出，不要任何解释、不要 markdown、不要多余文字。
 
-输出结构：
+请同时输出中文和英文两个版本。输出结构：
 {
-  "captions": {
-    "short": "短文案（1-2句，适合朋友圈/Instagram，不超过150字）",
-    "medium": "中长文（一段话，适合微博/小红书，不超过500字）",
-    "long": "长故事（详细记录，适合公众号/备忘录，不超过1500字）"
+  "zh": {
+    "captions": {
+      "short": "短文案（1-2句，适合朋友圈/Instagram，不超过150字）",
+      "medium": "中长文（一段话，适合微博/小红书，不超过500字）",
+      "long": "长故事（详细记录，适合公众号/备忘录，不超过1500字）"
+    },
+    "hashtags": ["标签1", "标签2", "标签3"],
+    "suggestedPosts": [
+      {
+        "platform": "instagram|twitter|tiktok|facebook",
+        "content": "针对该平台的优化内容"
+      }
+    ]
   },
-  "hashtags": ["标签1", "标签2", "标签3"],
-  "suggestedPosts": [
-    {
-      "platform": "instagram|twitter|tiktok|facebook",
-      "content": "针对该平台的优化内容"
-    }
-  ]
+  "en": {
+    "captions": {
+      "short": "Short caption (1-2 sentences, for Instagram/WeChat Moments, max 150 chars)",
+      "medium": "Medium-length post (for Twitter/Weibo/Xiaohongshu, max 500 chars)",
+      "long": "Long story (detailed, for blog/memo, max 1500 chars)"
+    },
+    "hashtags": ["tag1", "tag2", "tag3"],
+    "suggestedPosts": [
+      {
+        "platform": "instagram|twitter|tiktok|facebook",
+        "content": "Platform-optimized content in English"
+      }
+    ]
+  }
 }`;
 
 export async function generateMemorialContent(
   params: MemorialGenerationParams,
   signal?: AbortSignal,
-): Promise<MemorialContent> {
+): Promise<{ zh: MemorialContent; en: MemorialContent }> {
   const userPrompt = `请为以下演出生成纪念内容：
 - 演出：${params.eventName}
 - 艺人：${params.artistName || '未知'}
@@ -176,7 +239,7 @@ export async function generateMemorialContent(
 
   const raw = await createChatCompletion(
     [
-      { role: 'system', content: MEMORIAL_SYSTEM_PROMPT },
+      { role: 'system', content: MEMORIAL_BILINGUAL_SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
     ],
     { signal },
@@ -186,13 +249,24 @@ export async function generateMemorialContent(
   const sanitized = raw.replace(/#"/g, '"');
 
   try {
-    const parsed = JSON.parse(sanitized) as MemorialContent;
+    const parsed = JSON.parse(sanitized) as { zh: MemorialContent; en: MemorialContent };
+    if (!parsed.zh || !parsed.en) {
+      throw new DeepSeekError('Missing zh or en in bilingual memorial response');
+    }
     return {
-      ...parsed,
-      eventName: params.eventName,
-      template: params.template,
+      zh: {
+        ...parsed.zh,
+        eventName: params.eventName,
+        template: params.template,
+      },
+      en: {
+        ...parsed.en,
+        eventName: params.eventName,
+        template: params.template,
+      },
     };
   } catch (e) {
+    if (e instanceof DeepSeekError) throw e;
     throw new DeepSeekError(`Failed to parse memorial JSON: ${(e as Error).message}`);
   }
 }

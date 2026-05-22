@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export interface PickerOption {
   label: string;
@@ -31,9 +32,10 @@ export default function PickerSelect({
   options,
   value,
   onChange,
-  placeholder = '请选择',
+  placeholder,
   error,
 }: PickerSelectProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   const selectedLabel = options.find((opt) => opt.value === value)?.label;
@@ -53,7 +55,7 @@ export default function PickerSelect({
           ]}
           numberOfLines={1}
         >
-          {selectedLabel || placeholder}
+          {selectedLabel || placeholder || ''}
         </Text>
         <Text style={styles.arrow}>▼</Text>
       </TouchableOpacity>
@@ -69,11 +71,11 @@ export default function PickerSelect({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setVisible(false)}>
-                <Text style={styles.cancelText}>取消</Text>
+                <Text style={styles.cancelText}>{t.common.cancel}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{label}</Text>
               <TouchableOpacity onPress={() => setVisible(false)}>
-                <Text style={styles.confirmText}>确定</Text>
+                <Text style={styles.confirmText}>{t.common.confirm}</Text>
               </TouchableOpacity>
             </View>
 

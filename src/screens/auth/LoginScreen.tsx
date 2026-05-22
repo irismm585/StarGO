@@ -11,8 +11,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
-import { fontSize, spacing } from '../../constants/layout';
+import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { validateEmail, validatePassword } from '../../utils/validation';
@@ -20,6 +21,7 @@ import { validateEmail, validatePassword } from '../../utils/validation';
 export default function LoginScreen() {
   const navigation = useNavigation();
   const { login, error, clearError, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,13 +63,13 @@ export default function LoginScreen() {
           style={styles.header}
         >
           <Text style={styles.logo}>StarGo</Text>
-          <Text style={styles.tagline}>AI 驱动的演出旅行</Text>
+          <Text style={styles.tagline}>{t.auth.tagline}</Text>
         </LinearGradient>
 
         {/* Form Card */}
         <View style={styles.formCard}>
-          <Text style={styles.welcomeText}>欢迎回来</Text>
-          <Text style={styles.subtitle}>登录以继续你的旅程</Text>
+          <Text style={styles.welcomeText}>{t.auth.loginTitle}</Text>
+          <Text style={styles.subtitle}>{t.auth.loginSubtitle}</Text>
 
           {displayError && (
             <View style={styles.errorBanner}>
@@ -76,8 +78,8 @@ export default function LoginScreen() {
           )}
 
           <Input
-            label="邮箱"
-            placeholder="请输入邮箱地址"
+            label={t.auth.email}
+            placeholder={t.auth.emailPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -85,15 +87,15 @@ export default function LoginScreen() {
           />
 
           <Input
-            label="密码"
-            placeholder="请输入密码"
+            label={t.auth.password}
+            placeholder={t.auth.passwordPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
 
           <Button
-            title="登录"
+            title={t.auth.login}
             onPress={handleLogin}
             loading={isLoading}
           />
@@ -103,8 +105,8 @@ export default function LoginScreen() {
             style={styles.switchButton}
           >
             <Text style={styles.switchText}>
-              还没有账号？
-              <Text style={styles.switchLink}>立即注册</Text>
+              {t.auth.noAccount}
+              <Text style={styles.switchLink}>{t.auth.registerNow}</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -138,12 +140,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginHorizontal: spacing.xl,
     marginTop: -30,
-    borderRadius: 24,
+    borderRadius: borderRadius.xxl,
     padding: spacing.xxl,
-    shadowColor: colors.cardShadow,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#9578C8',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
+    shadowOpacity: 0.08,
+    shadowRadius: 28,
     elevation: 8,
   },
   welcomeText: {
@@ -158,12 +162,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.error,
   },
   errorText: {
     color: colors.error,

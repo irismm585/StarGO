@@ -6,6 +6,8 @@ import type { BudgetObj } from '../../types/itinerary';
 
 interface BudgetBreakdownProps {
   budget: BudgetObj;
+  title?: string;
+  totalLabel?: string;
 }
 
 const CATEGORY_COLORS = [
@@ -14,16 +16,16 @@ const CATEGORY_COLORS = [
   '#F59E0B',
   '#10B981',
   '#3B82F6',
-  '#8B5CF6',
+  '#9578C8',
 ];
 
-export default function BudgetBreakdown({ budget }: BudgetBreakdownProps) {
+export default function BudgetBreakdown({ budget, title, totalLabel }: BudgetBreakdownProps) {
   const entries = Object.entries(budget.breakdown);
   if (entries.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>预算</Text>
-        <Text style={styles.total}>总计：{budget.total}</Text>
+        <Text style={styles.sectionTitle}>{title || '预算'}</Text>
+        <Text style={styles.total}>{totalLabel || '总计：'}{budget.total}</Text>
       </View>
     );
   }
@@ -36,8 +38,8 @@ export default function BudgetBreakdown({ budget }: BudgetBreakdownProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>预算</Text>
-      <Text style={styles.total}>总计：{budget.total}</Text>
+      <Text style={styles.sectionTitle}>{title || '预算'}</Text>
+      <Text style={styles.total}>{totalLabel || '总计：'}{budget.total}</Text>
 
       {/* Bar visualization */}
       <View style={styles.barContainer}>

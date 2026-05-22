@@ -13,22 +13,24 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { generateContent } from '../../services/memorial';
 import { getSavedItineraries } from '../../services/itinerary';
 import Header from '../../components/common/Header';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
+import DatePicker from '../../components/common/DatePicker';
 import TemplateSelector from '../../components/memorial/TemplateSelector';
 import { formatDate, formatDateRange } from '../../utils/formatters';
 import type { MemorialTemplate, MemorialGenerationParams } from '../../types/memorial';
 import type { SavedItinerary } from '../../types/itinerary';
 
-const MOODS = ['兴奋', '怀念', '感激', '充满能量', ' bittersweet'];
-
 export default function MemorialGeneratorScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const moods = [t.memorial.moodExcited, t.memorial.moodNostalgic, t.memorial.moodGrateful, t.memorial.moodEnergetic, t.memorial.moodBittersweet];
 
   const [eventName, setEventName] = useState('');
   const [artistName, setArtistName] = useState('');
@@ -63,10 +65,10 @@ export default function MemorialGeneratorScreen() {
   };
 
   const validate = (): boolean => {
-    if (!eventName.trim()) { setError('请输入演出名称'); return false; }
-    if (!venueName.trim()) { setError('请输入场馆名称'); return false; }
-    if (!city.trim()) { setError('请输入城市'); return false; }
-    if (!date.trim()) { setError('请输入日期'); return false; }
+    if (!eventName.trim()) { setError(t.memorial.error.eventName); return false; }
+    if (!venueName.trim()) { setError(t.memorial.error.venueName); return false; }
+    if (!city.trim()) { setError(t.memorial.error.city); return false; }
+    if (!date.trim()) { setError(t.memorial.error.date); return false; }
     return true;
   };
 
@@ -91,12 +93,12 @@ export default function MemorialGeneratorScreen() {
 
     try {
       const result = await generateContent(params, controller.signal);
-      navigation.navigate('MemorialPreview', { content: result });
+      navigation.navigate('MemorialPreview', { content: result.content, contentEn: result.contentEn });
     } catch (e: any) {
       if (e.name === 'AbortError') {
-        setError('已取消生成');
+        setError(t.memorial.error.cancelled);
       } else {
-        setError(e.message || '生成失败，请重试');
+        setError(e.message || t.memorial.error.generationFailed);
       }
     } finally {
       setIsGenerating(false);
@@ -112,7 +114,7 @@ export default function MemorialGeneratorScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="生成纪念" showBack />
+      <Header title={t.memorial.header} showBack />
 
       <ScrollView
         style={styles.scroll}
@@ -127,21 +129,21 @@ export default function MemorialGeneratorScreen() {
             onPress={() => setShowImportModal(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.importIcon}>📋</Text>
-            <Text style={styles.importText}>从已有行程导入</Text>
+            <Text style={styles.importIcon}>←</Text>
+            <Text style={styles.importText}>{t.memorial.importText}</Text>
             <Text style={styles.importArrow}>›</Text>
           </TouchableOpacity>
         </View>
 
         {/* Event Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>演出信息</Text>
+          <Text style={styles.sectionTitle}>{t.memorial.eventInfo}</Text>
           <Card>
-            <Input label="演出名称" placeholder="例：Taylor Swift 演唱会" value={eventName} onChangeText={setEventName} />
-            <Input label="艺人（选填）" placeholder="例：Taylor Swift" value={artistName} onChangeText={setArtistName} />
-            <Input label="场馆" placeholder="例：东京巨蛋" value={venueName} onChangeText={setVenueName} />
-            <Input label="城市" placeholder="例：东京" value={city} onChangeText={setCity} />
-            <Input label="日期" placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} autoCapitalize="none" />
+            <Input label={t.memorial.eventName} placeholder={t.memorial.placeholder.eventName} value={eventName} onChangeText={setEventName} />
+            <Input label={t.memorial.artistName} placeholder={t.memorial.placeholder.artistName} value={artistName} onChangeText={setArtistName} />
+            <Input label={t.memorial.venueName} placeholder={t.memorial.placeholder.venueName} value={venueName} onChangeText={setVenueName} />
+            <Input label={t.memorial.city} placeholder={t.memorial.placeholder.city} value={city} onChangeText={setCity} />
+            <DatePicker label={t.memorial.date} value={date} onChange={setDate} />
           </Card>
         </View>
 
@@ -152,10 +154,10 @@ export default function MemorialGeneratorScreen() {
 
         {/* Mood */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>心情</Text>
+          <Text style={styles.sectionTitle}>{t.memorial.moods}</Text>
           <Card>
             <View style={styles.moodRow}>
-              {MOODS.map((m) => (
+              {moods.map((m) => (
                 <TouchableOpacity
                   key={m}
                   onPress={() => setMood(m)}
@@ -170,11 +172,11 @@ export default function MemorialGeneratorScreen() {
 
         {/* Highlights */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>个人亮点</Text>
+          <Text style={styles.sectionTitle}>{t.memorial.highlights}</Text>
           <Card>
             <Input
-              label="最难忘的瞬间"
-              placeholder="分享你的精彩时刻..."
+              label={t.memorial.highlightLabel}
+              placeholder={t.memorial.highlightPlaceholder}
               value={highlights}
               onChangeText={setHighlights}
               multiline
@@ -192,7 +194,7 @@ export default function MemorialGeneratorScreen() {
         {/* Generate */}
         <View style={styles.generateSection}>
           <Button
-            title="AI 生成纪念内容"
+            title={t.memorial.generate}
             onPress={handleGenerate}
             loading={isGenerating}
           />
@@ -210,15 +212,15 @@ export default function MemorialGeneratorScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowImportModal(false)}>
-                <Text style={styles.modalCancelText}>取消</Text>
+                <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>选择行程</Text>
+              <Text style={styles.modalTitle}>{t.memorial.selectTrip}</Text>
               <View style={{ width: 44 }} />
             </View>
 
             {importableItineraries.length === 0 ? (
               <View style={styles.emptyModal}>
-                <Text style={styles.emptyModalText}>暂无已保存的行程</Text>
+                <Text style={styles.emptyModalText}>{t.memorial.noSavedTrips}</Text>
               </View>
             ) : (
               <FlatList
@@ -246,9 +248,9 @@ export default function MemorialGeneratorScreen() {
       {isGenerating && (
         <View style={styles.overlay}>
           <View style={styles.overlayContent}>
-            <Text style={styles.overlayIcon}>✨</Text>
-            <Text style={styles.overlayTitle}>StarGo AI 正在书写你的故事...</Text>
-            <Button title="取消" onPress={handleCancel} variant="outline" fullWidth={false} style={styles.cancelBtn} />
+            <Text style={styles.overlayIcon}>◇</Text>
+            <Text style={styles.overlayTitle}>{t.memorial.generating}</Text>
+            <Button title={t.memorial.cancel} onPress={handleCancel} variant="outline" fullWidth={false} style={styles.cancelBtn} />
           </View>
         </View>
       )}
@@ -276,12 +278,8 @@ const styles = StyleSheet.create({
   moodTextActive: { color: '#FFFFFF', fontWeight: '600' },
   errorBanner: {
     marginHorizontal: spacing.xl,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
   },
   errorText: { color: colors.error, fontSize: fontSize.sm, textAlign: 'center' },
   generateSection: { paddingHorizontal: spacing.xl, marginTop: spacing.md },
@@ -294,10 +292,17 @@ const styles = StyleSheet.create({
   },
   overlayContent: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
+    borderRadius: borderRadius.xxl,
     padding: spacing.xxl,
     marginHorizontal: spacing.xl,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#9578C8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 6,
   },
   overlayIcon: { fontSize: 48, marginBottom: spacing.lg },
   overlayTitle: {
@@ -315,7 +320,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary,
     borderStyle: 'dashed',
   },
   importIcon: { fontSize: 20, marginRight: spacing.md },
@@ -327,11 +332,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderTopLeftRadius: borderRadius.xxl,
+    borderTopRightRadius: borderRadius.xxl,
     paddingBottom: Platform.OS === 'ios' ? 34 : spacing.xl,
     maxHeight: '60%',
+    shadowColor: '#9578C8',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',

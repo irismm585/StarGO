@@ -33,40 +33,13 @@ export default function Input({
   autoCapitalize = 'none',
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const borderAnim = useRef(new Animated.Value(0)).current;
-
-  const handleFocus = () => {
-    setIsFocused(true);
-    Animated.timing(borderAnim, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-    Animated.timing(borderAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const borderColor = error
-    ? colors.error
-    : borderAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [colors.border, colors.primary],
-      });
 
   return (
     <View style={styles.container}>
       <Text style={[styles.label, error && styles.labelError]}>{label}</Text>
-      <Animated.View
+      <View
         style={[
           styles.inputWrapper,
-          { borderColor },
           isFocused && styles.inputFocused,
           error && styles.inputError,
           multiline && styles.multilineWrapper,
@@ -82,10 +55,10 @@ export default function Input({
           multiline={multiline}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
-      </Animated.View>
+      </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
@@ -97,28 +70,29 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontWeight: '500',
     color: colors.text,
     marginBottom: spacing.sm,
+    letterSpacing: 0.2,
   },
   labelError: {
     color: colors.error,
   },
   inputWrapper: {
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
+    borderRadius: borderRadius.md,
   },
   inputFocused: {
+    borderColor: colors.primary,
     backgroundColor: colors.surface,
   },
   inputError: {
     borderColor: colors.error,
   },
   input: {
-    height: 50,
+    height: 48,
     paddingHorizontal: spacing.lg,
     fontSize: fontSize.md,
     color: colors.text,
@@ -135,6 +109,5 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.error,
     marginTop: spacing.xs,
-    marginLeft: spacing.xs,
   },
 });

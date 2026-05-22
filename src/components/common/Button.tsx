@@ -7,11 +7,10 @@ import {
   ViewStyle,
   Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../constants/colors';
 import { borderRadius, fontSize, spacing, shadow } from '../../constants/layout';
 
-type Variant = 'gradient' | 'outline' | 'ghost';
+type Variant = 'primary' | 'outline' | 'ghost';
 
 interface ButtonProps {
   title: string;
@@ -26,7 +25,7 @@ interface ButtonProps {
 export default function Button({
   title,
   onPress,
-  variant = 'gradient',
+  variant = 'primary',
   loading = false,
   disabled = false,
   style,
@@ -36,7 +35,7 @@ export default function Button({
 
   const handlePressIn = useCallback(() => {
     Animated.spring(scaleAnim, {
-      toValue: 0.96,
+      toValue: 0.97,
       useNativeDriver: true,
       speed: 50,
     }).start();
@@ -52,7 +51,7 @@ export default function Button({
 
   const isDisabled = loading || disabled;
 
-  if (variant === 'gradient') {
+  if (variant === 'primary') {
     return (
       <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, fullWidth && styles.fullWidth]}>
         <TouchableOpacity
@@ -60,20 +59,14 @@ export default function Button({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={isDisabled}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
+          style={[styles.button, styles.primaryButton, isDisabled && styles.disabledButton, style]}
         >
-          <LinearGradient
-            colors={isDisabled ? ['#CBD5E1', '#94A3B8'] : [colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.button, styles.gradientButton, style]}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.gradientText}>{title}</Text>
-            )}
-          </LinearGradient>
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={[styles.primaryText, isDisabled && styles.disabledText]}>{title}</Text>
+          )}
         </TouchableOpacity>
       </Animated.View>
     );
@@ -87,16 +80,11 @@ export default function Button({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={isDisabled}
-          activeOpacity={0.8}
-          style={[
-            styles.button,
-            styles.outlineButton,
-            isDisabled && styles.disabledOutline,
-            style,
-          ]}
+          activeOpacity={0.9}
+          style={[styles.button, styles.outlineButton, isDisabled && styles.disabledOutline, style]}
         >
           {loading ? (
-            <ActivityIndicator color={colors.primary} size="small" />
+            <ActivityIndicator color={colors.text} size="small" />
           ) : (
             <Text style={[styles.outlineText, isDisabled && styles.disabledText]}>{title}</Text>
           )}
@@ -105,15 +93,15 @@ export default function Button({
     );
   }
 
-  // ghost variant
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
+      activeOpacity={0.7}
       style={[styles.ghostButton, style]}
     >
       {loading ? (
-        <ActivityIndicator color={colors.primary} size="small" />
+        <ActivityIndicator color={colors.textSecondary} size="small" />
       ) : (
         <Text style={[styles.ghostText, isDisabled && styles.disabledText]}>{title}</Text>
       )}
@@ -122,39 +110,42 @@ export default function Button({
 }
 
 const styles = StyleSheet.create({
-  fullWidth: {
-    width: '100%',
-  },
+  fullWidth: { width: '100%' },
   button: {
     height: 52,
-    borderRadius: borderRadius.xxl,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xxl,
   },
-  gradientButton: {
+  primaryButton: {
+    backgroundColor: colors.primary,
     ...shadow.button,
   },
-  gradientText: {
+  primaryText: {
     color: '#FFFFFF',
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   outlineButton: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.primary,
     backgroundColor: 'transparent',
   },
+  disabledButton: {
+    backgroundColor: '#D4D4D4',
+  },
   disabledOutline: {
-    borderColor: '#CBD5E1',
+    borderColor: '#D4D4D4',
   },
   outlineText: {
     color: colors.primary,
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   disabledText: {
-    color: '#94A3B8',
+    color: '#B0B0B0',
   },
   ghostButton: {
     height: 44,
@@ -163,8 +154,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   ghostText: {
-    color: colors.primary,
+    color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });

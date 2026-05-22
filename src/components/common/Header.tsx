@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
-import { fontSize, spacing } from '../../constants/layout';
+import { fontSize, spacing, borderRadius } from '../../constants/layout';
 
 interface HeaderProps {
   title: string;
@@ -12,6 +11,7 @@ interface HeaderProps {
 }
 
 export default function Header({ title, showBack = false, rightAction }: HeaderProps) {
+  const { useNavigation } = require('@react-navigation/native');
   const navigation = useNavigation();
 
   return (
@@ -25,7 +25,7 @@ export default function Header({ title, showBack = false, rightAction }: HeaderP
         <View style={styles.left}>
           {showBack && (
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={styles.backText}>←</Text>
+              <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -42,10 +42,10 @@ export default function Header({ title, showBack = false, rightAction }: HeaderP
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 50,
+    paddingTop: 54,
     paddingBottom: spacing.lg,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
   },
   content: {
     flexDirection: 'row',
@@ -65,19 +65,20 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backText: {
-    fontSize: 20,
+  backArrow: {
+    fontSize: 18,
     color: '#FFFFFF',
   },
   title: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontSize: fontSize.lg,
+    fontWeight: '600',
     color: '#FFFFFF',
     flex: 1,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
 });

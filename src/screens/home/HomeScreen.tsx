@@ -1,224 +1,228 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  FlatList,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  RefreshControl,
+  Image,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
-import { fontSize, spacing } from '../../constants/layout';
+import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
-import { getSavedItineraries } from '../../services/itinerary';
-import { getChatRooms } from '../../services/chat';
-import { getSavedMemorials } from '../../services/memorial';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import EmptyState from '../../components/common/EmptyState';
-import ItineraryCard from '../../components/itinerary/ItineraryCard';
-import type { SavedItinerary } from '../../types/itinerary';
-import type { ChatRoom } from '../../types/chat';
-import type { SavedMemorial } from '../../types/memorial';
-import { getAllEvents } from '../../constants/events';
-import type { MockEvent } from '../../constants/events';
+import { useTranslation } from '../../contexts/LanguageContext';
+import {
+  getAllEvents,
+  getEventsByCategory,
+  CATEGORIES,
+  type EventCategory,
+  type MockEvent,
+} from '../../constants/events';
+import { localizeEvent } from '../../utils/localization';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH - spacing.xl * 2;
+const CARD_HEIGHT = 200;
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const { t, language, toggleLanguage } = useTranslation();
 
-  const [itineraries, setItineraries] = useState<SavedItinerary[]>([]);
-  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-  const [memorials, setMemorials] = useState<SavedMemorial[]>([]);
-  const [events] = useState<MockEvent[]>(getAllEvents);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<EventCategory | 'all'>('all');
+  const [events, setEvents] = useState<MockEvent[]>(getAllEvents());
 
-  const loadData = useCallback(async () => {
-    if (!user) return;
-    try {
-      const [its, rooms, mems] = await Promise.all([
-        getSavedItineraries(user.id),
-        getChatRooms(),
-        getSavedMemorials(user.id),
-      ]);
-      setItineraries(its);
-      setChatRooms(rooms.filter((r) => r.isJoined));
-      setMemorials(mems);
-    } catch (e) {
-      console.error('Home load error:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user]);
+  useEffect(() => {
+    setEvents(getEventsByCategory(activeCategory));
+  }, [activeCategory]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
+  const handleCategoryChange = (cat: EventCategory | 'all') => {
+    setActiveCategory(cat);
   };
 
-  if (loading) {
-    return <LoadingSpinner message="加载中..." />;
-  }
+  const getCategoryLabel = (cat: EventCategory | 'all'): string => {
+    if (cat === 'all') return t.home.all;
+    const found = CATEGORIES.find((c) => c.key === cat);
+    if (!found) return cat;
+    return language === 'zh' ? found.labelZh : found.labelEn;
+  };
+
+  const handleEventPress = (event: MockEvent) => {
+    navigation.navigate('EventDetail', { event });
+  };
+
+  const handlePlanTrip = () => {
+    navigation.navigate('ItineraryTab', { screen: 'ItineraryList' });
+  };
+
+  const handleFindBuddy = () => {
+    navigation.navigate('FindBuddy');
+  };
+
+  const handleMemorial = () => {
+    navigation.navigate('MemorialTab', { screen: 'MemorialGenerator' });
+  };
+
+  const renderEventCard = ({ item }: { item: MockEvent }) => {
+    const localized = localizeEvent(item, language);
+    return (
+      <TouchableOpacity
+        style={styles.eventCard}
+        onPress={() => handleEventPress(item)}
+        activeOpacity={0.9}
+      >
+        <Image
+          source={{ uri: localized.image }}
+          style={styles.eventImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.eventImageOverlay}
+        />
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>
+            {getCategoryLabel(item.category)}
+          </Text>
+        </View>
+        <View style={styles.eventInfo}>
+          <Text style={styles.eventName} numberOfLines={1}>
+            {localized.eventName}
+          </Text>
+          <Text style={styles.eventArtist} numberOfLines={1}>
+            {localized.artistName}
+          </Text>
+          <View style={styles.eventMeta}>
+            <Text style={styles.eventMetaText}>
+              · {localized.venueName} · {localized.city}
+            </Text>
+          </View>
+          <Text style={styles.eventDate}>— {localized.date}</Text>
+          <Text style={styles.eventPrice}>{localized.priceRange}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-      }
-    >
-      {/* Gradient Header */}
+    <View style={styles.container}>
+      {/* Fixed Header - Logo only */}
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <Text style={styles.greeting}>
-          你好，{user?.displayName || '旅行者'} 👋
-        </Text>
-        <Text style={styles.headerSub}>今天想去哪看演出？</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.logoRow}>
+            <Text style={styles.logoIcon}>✦</Text>
+            <Text style={styles.logoText}>𝓢𝓽𝓪𝓻𝓖𝓸</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.langToggle}
+            onPress={toggleLanguage}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.langToggleText}>
+              {language === 'zh' ? 'EN' : '中'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={() => navigation.navigate('ItineraryTab', { screen: 'ItineraryCreate' })}
-        >
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.quickIcon}
-          >
-            <Text style={styles.quickIconText}>📋</Text>
-          </LinearGradient>
-          <Text style={styles.quickLabel}>规划行程</Text>
-        </TouchableOpacity>
+      {/* Scrollable Content */}
+      <FlatList
+        data={events}
+        keyExtractor={(item) => item.id}
+        renderItem={renderEventCard}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View>
+            {/* Greeting */}
+            <View style={styles.greetingSection}>
+              <Text style={styles.greeting}>{t.home.title}</Text>
+              <Text style={styles.headerSub}>{t.home.greeting}</Text>
+            </View>
 
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={() => navigation.navigate('ChatTab')}
-        >
-          <View style={[styles.quickIcon, styles.quickIconSecondary]}>
-            <Text style={styles.quickIconText}>💬</Text>
+            {/* Quick Action Buttons */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={handlePlanTrip}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
+                  <Text style={styles.quickActionEmoji}>→</Text>
+                </View>
+                <Text style={styles.quickActionLabel}>{t.home.planTrip}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={handleFindBuddy}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
+                  <Text style={styles.quickActionEmoji}>↗</Text>
+                </View>
+                <Text style={styles.quickActionLabel}>{t.home.findBuddy}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={handleMemorial}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
+                  <Text style={styles.quickActionEmoji}>◇</Text>
+                </View>
+                <Text style={styles.quickActionLabel}>{t.home.memorialText}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Category Tabs */}
+            <View style={styles.categoryContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryScroll}
+              >
+                {(['all', ...CATEGORIES.map((c) => c.key)] as const).map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryTab,
+                      activeCategory === cat && styles.categoryTabActive,
+                    ]}
+                    onPress={() => handleCategoryChange(cat)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        activeCategory === cat && styles.categoryTextActive,
+                      ]}
+                    >
+                      {getCategoryLabel(cat)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           </View>
-          <Text style={styles.quickLabel}>粉丝社区</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          onPress={() => navigation.navigate('MemorialTab')}
-        >
-          <View style={[styles.quickIcon, styles.quickIconTertiary]}>
-            <Text style={styles.quickIconText}>✨</Text>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>—</Text>
+            <Text style={styles.emptyTitle}>{t.home.empty}</Text>
           </View>
-          <Text style={styles.quickLabel}>生成纪念</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Hot Events */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>热门演出推荐</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventsScroll}>
-          {events.map((event) => (
-            <TouchableOpacity
-              key={event.id}
-              style={styles.eventCard}
-              onPress={() => navigation.navigate('EventDetail', { event })}
-            >
-              <Text style={styles.eventCardIcon}>{event.image}</Text>
-              <Text style={styles.eventCardName} numberOfLines={2}>{event.eventName}</Text>
-              <Text style={styles.eventCardVenue} numberOfLines={1}>{event.venueName}</Text>
-              <Text style={styles.eventCardDate}>{event.date}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Saved Itineraries */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>我的行程</Text>
-        {itineraries.length === 0 ? (
-          <View style={styles.emptyMini}>
-            <Text style={styles.emptyText}>还没有行程，去规划你的第一段旅程吧！</Text>
-          </View>
-        ) : (
-          itineraries.slice(0, 3).map((it) => (
-            <ItineraryCard
-              key={it.id}
-              itinerary={it}
-              onPress={() =>
-                navigation.navigate('ItineraryTab', {
-                  screen: 'ItineraryDetail',
-                  params: { itineraryData: it.itineraryData, savedId: it.id, title: it.title },
-                })
-              }
-            />
-          ))
-        )}
-      </View>
-
-      {/* Active Chat Rooms */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>我的社区</Text>
-        {chatRooms.length === 0 ? (
-          <View style={styles.emptyMini}>
-            <Text style={styles.emptyText}>还没有加入聊天室，去发现粉丝社区吧！</Text>
-          </View>
-        ) : (
-          chatRooms.slice(0, 2).map((room) => (
-            <TouchableOpacity
-              key={room.id}
-              style={styles.roomItem}
-              onPress={() =>
-                navigation.navigate('ChatTab', {
-                  screen: 'ChatRoom',
-                  params: { roomId: room.id, roomName: room.name },
-                })
-              }
-            >
-              {room.isVerified && <Text style={styles.verifiedBadge}>✓</Text>}
-              <View style={styles.roomInfo}>
-                <Text style={styles.roomName}>{room.name}</Text>
-                <Text style={styles.roomMember}>{room.memberCount} 位成员</Text>
-              </View>
-              <Text style={styles.roomArrow}>›</Text>
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
-
-      {/* Recent Memorials */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>最近纪念</Text>
-        {memorials.length === 0 ? (
-          <View style={styles.emptyMini}>
-            <Text style={styles.emptyText}>还没有纪念内容，去生成你的第一篇吧！</Text>
-          </View>
-        ) : (
-          memorials.slice(0, 2).map((mem) => (
-            <TouchableOpacity key={mem.id} style={styles.memorialItem}>
-              <Text style={styles.memorialEvent}>{mem.eventName}</Text>
-              <Text style={styles.memorialDate}>
-                {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
-              </Text>
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
-    </ScrollView>
+        }
+      />
+    </View>
   );
 }
 
@@ -228,169 +232,225 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingBottom: 14,
     paddingHorizontal: spacing.xl,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: borderRadius.xl,
+    borderBottomRightRadius: borderRadius.xl,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  logoIcon: {
+    fontSize: 28,
+  },
+  logoText: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 2,
+    fontStyle: 'italic',
+  },
+  langToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  langToggleText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  greetingSection: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xs,
   },
   greeting: {
     fontSize: fontSize.xxl,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.text,
     marginBottom: spacing.xs,
   },
   headerSub: {
     fontSize: fontSize.md,
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.textSecondary,
   },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: -24,
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+    backgroundColor: colors.background,
   },
-  quickAction: {
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#9578C8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  quickIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  quickIconSecondary: {
-    backgroundColor: colors.accent,
-  },
-  quickIconTertiary: {
-    backgroundColor: colors.success,
-  },
-  quickIconText: {
-    fontSize: 24,
-  },
-  quickLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: spacing.sm,
-  },
-  section: {
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.xxl,
-  },
-  sectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  emptyMini: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  emptyText: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  roomItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  quickActionEmoji: {
+    fontSize: 22,
+  },
+  quickActionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  categoryContainer: {
+    paddingVertical: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  categoryScroll: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  categoryTab: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     borderWidth: 1,
     borderColor: colors.border,
   },
-  verifiedBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.verified,
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginRight: spacing.md,
+  categoryTabActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  roomInfo: {
-    flex: 1,
-  },
-  roomName: {
-    fontSize: fontSize.md,
+  categoryText: {
+    fontSize: fontSize.sm,
     fontWeight: '600',
-    color: colors.text,
-  },
-  roomMember: {
-    fontSize: fontSize.xs,
     color: colors.textSecondary,
-    marginTop: 2,
   },
-  roomArrow: {
-    fontSize: 24,
-    color: colors.textMuted,
+  categoryTextActive: {
+    color: '#FFFFFF',
   },
-  eventsScroll: {
-    marginBottom: spacing.md,
+  listContent: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl + 40,
   },
   eventCard: {
-    width: 180,
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    marginRight: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowColor: '#9578C8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 5,
   },
-  eventCardIcon: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
+  eventImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
   },
-  eventCardName: {
-    fontSize: fontSize.sm,
+  eventImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.xs,
-    lineHeight: 18,
+    color: '#4C1D95',
   },
-  eventCardVenue: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
+  eventInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.lg,
+  },
+  eventName: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
-  eventCardDate: {
-    fontSize: fontSize.xs,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  memorialItem: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
+  eventArtist: {
+    fontSize: fontSize.sm,
+    color: 'rgba(255,255,255,0.85)',
     marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  memorialEvent: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-    color: colors.text,
+  eventMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
   },
-  memorialDate: {
+  eventMetaText: {
     fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.75)',
+  },
+  eventDate: {
+    fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.75)',
+  },
+  eventPrice: {
+    fontSize: fontSize.sm,
+    color: '#FFD700',
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: fontSize.md,
     color: colors.textSecondary,
-    marginTop: 2,
   },
 });

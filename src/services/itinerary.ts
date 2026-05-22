@@ -13,15 +13,18 @@ function generateId(): string {
 
 export async function generateItinerary(
   params: ItineraryGenerationParams,
+  _language?: 'zh' | 'en',
   signal?: AbortSignal,
-): Promise<Itinerary> {
-  return deepseekGenerate(params, signal);
+): Promise<{ itineraryData: Itinerary; itineraryDataEn: Itinerary }> {
+  const bilingual = await deepseekGenerate(params, _language, signal);
+  return { itineraryData: bilingual.zh, itineraryDataEn: bilingual.en };
 }
 
 export async function saveItinerary(
   userId: string,
   itinerary: Itinerary,
   params: ItineraryGenerationParams,
+  itineraryEn?: Itinerary,
 ): Promise<SavedItinerary> {
   const saved = await storage.get<SavedItinerary[]>(STORAGE_KEYS.ITINERARIES) || [];
 
@@ -41,6 +44,7 @@ export async function saveItinerary(
     hotelPref: params.hotelPref,
     foodPref: params.foodPref,
     itineraryData: itinerary,
+    ...(itineraryEn ? { itineraryDataEn: itineraryEn } : {}),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -74,6 +78,7 @@ export async function updateItinerary(
   id: string,
   itinerary: Itinerary,
   params: ItineraryGenerationParams,
+  itineraryEn?: Itinerary,
 ): Promise<SavedItinerary> {
   const saved = await storage.get<SavedItinerary[]>(STORAGE_KEYS.ITINERARIES) || [];
   const index = saved.findIndex((item) => item.id === id);
@@ -94,6 +99,7 @@ export async function updateItinerary(
     hotelPref: params.hotelPref,
     foodPref: params.foodPref,
     itineraryData: itinerary,
+    ...(itineraryEn ? { itineraryDataEn: itineraryEn } : {}),
     updatedAt: new Date().toISOString(),
   };
 

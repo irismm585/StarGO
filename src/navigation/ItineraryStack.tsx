@@ -18,7 +18,7 @@ export type ItineraryPrefill = {
 export type ItineraryStackParamList = {
   ItineraryList: undefined;
   ItineraryCreate: { editData?: SavedItinerary; prefill?: ItineraryPrefill } | undefined;
-  ItineraryDetail: { itineraryData: Itinerary; savedId?: string; title?: string };
+  ItineraryDetail: { itineraryData: Itinerary; itineraryDataEn?: Itinerary; savedId?: string; title?: string };
 };
 
 const Stack = createNativeStackNavigator<ItineraryStackParamList>();

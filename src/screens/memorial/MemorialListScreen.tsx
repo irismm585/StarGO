@@ -12,20 +12,20 @@ import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
-import { getSavedItineraries, deleteItinerary } from '../../services/itinerary';
+import { getSavedMemorials, deleteMemorial } from '../../services/memorial';
 import Header from '../../components/common/Header';
-import ItineraryCard from '../../components/itinerary/ItineraryCard';
+import Card from '../../components/common/Card';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorState from '../../components/common/ErrorState';
 import EmptyState from '../../components/common/EmptyState';
-import type { SavedItinerary } from '../../types/itinerary';
+import type { SavedMemorial } from '../../types/memorial';
 
-export default function ItineraryListScreen() {
+export default function MemorialListScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  const [itineraries, setItineraries] = useState<SavedItinerary[]>([]);
+  const [memorials, setMemorials] = useState<SavedMemorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,10 +33,10 @@ export default function ItineraryListScreen() {
     if (!user) return;
     setError(null);
     try {
-      const data = await getSavedItineraries(user.id);
-      setItineraries(data);
+      const data = await getSavedMemorials(user.id);
+      setMemorials(data);
     } catch (e) {
-      setError(t.itinerary.listLoadError);
+      setError(t.memorial.listLoadError);
     } finally {
       setLoading(false);
     }
@@ -48,15 +48,15 @@ export default function ItineraryListScreen() {
     }, [loadData])
   );
 
-  const handleDelete = (id: string, title: string) => {
-    Alert.alert(t.itinerary.detailDelete, `${t.itinerary.listDeleteConfirm}"${title}"？`, [
+  const handleDelete = (id: string, eventName: string) => {
+    Alert.alert(t.common.delete, `${t.memorial.listDeleteConfirm}"${eventName}"？`, [
       { text: t.common.cancel, style: 'cancel' },
       {
         text: t.common.delete,
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteItinerary(id);
+            await deleteMemorial(id);
             await loadData();
           } catch (e) {
             console.error('Delete failed:', e);
@@ -66,51 +66,54 @@ export default function ItineraryListScreen() {
     ]);
   };
 
-  if (loading) return <View style={styles.container}><Header title={t.itinerary.list} /><LoadingSpinner message={t.common.loading} /></View>;
-  if (error) return <View style={styles.container}><Header title={t.itinerary.list} /><ErrorState message={error} onRetry={loadData} /></View>;
+  if (loading) return <View style={styles.container}><Header title={t.memorial.title} /><LoadingSpinner message={t.common.loading} /></View>;
+  if (error) return <View style={styles.container}><Header title={t.memorial.title} /><ErrorState message={error} onRetry={loadData} /></View>;
 
   return (
     <View style={styles.container}>
-      <Header title={t.itinerary.list} />
-      {itineraries.length === 0 ? (
+      <Header title={t.memorial.title} />
+      {memorials.length === 0 ? (
         <EmptyState
-          icon="→"
-          title={t.itinerary.listEmptyTitle}
-          message={t.itinerary.listEmptyDesc}
-          actionLabel={t.itinerary.listEmptyAction}
-          onAction={() => navigation.navigate('ItineraryCreate')}
+          icon="◇"
+          title={t.memorial.listEmpty}
+          message={t.memorial.listEmptyDesc}
+          actionLabel={t.memorial.listEmptyAction}
+          onAction={() => navigation.navigate('MemorialGenerator')}
         />
       ) : (
         <FlatList
-          data={itineraries}
+          data={memorials}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <TouchableOpacity
               style={styles.createButton}
-              onPress={() => navigation.navigate('ItineraryCreate')}
+              onPress={() => navigation.navigate('MemorialGenerator')}
               activeOpacity={0.7}
             >
-              <Text style={styles.createButtonText}>+ {t.itinerary.create}</Text>
+              <Text style={styles.createButtonText}>+ {t.memorial.header}</Text>
             </TouchableOpacity>
           }
           renderItem={({ item }) => (
             <View style={styles.cardWrapper}>
               <View style={styles.cardContent}>
-                <ItineraryCard
-                  itinerary={item}
+                <TouchableOpacity
                   onPress={() =>
-                    navigation.navigate('ItineraryDetail', {
-                      itineraryData: item.itineraryData,
-                      savedId: item.id,
-                      title: item.title,
-                    })
+                    navigation.navigate('MemorialPreview', { content: item.content, contentEn: item.contentEn })
                   }
-                />
+                  activeOpacity={0.85}
+                >
+                  <Card glass>
+                    <Text style={styles.eventName}>{item.eventName}</Text>
+                    <Text style={styles.dateText}>
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </Text>
+                  </Card>
+                </TouchableOpacity>
               </View>
               <TouchableOpacity
                 style={styles.deleteBtn}
-                onPress={() => handleDelete(item.id, item.title)}
+                onPress={() => handleDelete(item.id, item.eventName)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.deleteBtnText}>✕</Text>
@@ -145,6 +148,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   cardContent: { flex: 1 },
+  eventName: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  dateText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
   deleteBtn: {
     width: 44,
     height: 44,

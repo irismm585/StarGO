@@ -10,40 +10,58 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { getChatRooms, joinRoom, leaveRoom } from '../../services/chat';
 import Header from '../../components/common/Header';
-import Button from '../../components/common/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import { localizeRoom } from '../../utils/localization';
 import type { ChatRoom } from '../../types/chat';
 
-type ListItem = ChatRoom | { type: 'header'; title: string };
+type CommunityTab = 'rooms' | 'buddies';
 
 export default function ChatRoomListScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const { t, language } = useTranslation();
 
+  const [activeTab, setActiveTab] = useState<CommunityTab>('rooms');
+
+  // Room state
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [roomsLoading, setRoomsLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
+  // Load rooms
+  const loadRooms = useCallback(async () => {
+    setRoomsLoading(true);
     try {
       const data = await getChatRooms();
       setRooms(data);
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setRoomsLoading(false);
     }
   }, []);
 
+  const handleTabChange = (tab: CommunityTab) => {
+    if (tab === 'buddies') {
+      // Navigate to FindBuddyScreen (shared with Home)
+      navigation.navigate('FindBuddyFromChat');
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [loadData])
+      loadRooms();
+    }, [loadRooms])
   );
 
-  const handleJoin = async (roomId: string) => {
+  // ── Room actions ──
+
+  const handleJoinRoom = async (roomId: string) => {
     if (!user) return;
     await joinRoom(roomId, user.id);
     setRooms((prev) =>
@@ -51,7 +69,7 @@ export default function ChatRoomListScreen() {
     );
   };
 
-  const handleLeave = async (roomId: string) => {
+  const handleLeaveRoom = async (roomId: string) => {
     if (!user) return;
     await leaveRoom(roomId, user.id);
     setRooms((prev) =>
@@ -59,78 +77,123 @@ export default function ChatRoomListScreen() {
     );
   };
 
-  if (loading) return <View style={styles.container}><Header title="粉丝社区" /><LoadingSpinner /></View>;
+  // ── Room render ──
+
+  const getRoomTypeLabel = (type: string): string => {
+    switch (type) {
+      case 'artist': return t.community.roomTypeArtist;
+      case 'venue': return t.community.roomTypeVenue;
+      case 'event': return t.community.roomTypeEvent;
+      default: return type;
+    }
+  };
 
   const joinedRooms = rooms.filter((r) => r.isJoined);
   const discoverRooms = rooms.filter((r) => !r.isJoined);
 
-  const listData: ListItem[] = [
-    ...(joinedRooms.length > 0 ? [{ type: 'header' as const, title: '我的房间' }] : []),
+  const roomListData: (ChatRoom | { type: 'header'; title: string })[] = [
+    ...(joinedRooms.length > 0 ? [{ type: 'header' as const, title: t.community.myRooms }] : []),
     ...joinedRooms,
-    ...(discoverRooms.length > 0 ? [{ type: 'header' as const, title: '发现房间' }] : []),
+    ...(discoverRooms.length > 0 ? [{ type: 'header' as const, title: t.community.discoverRooms }] : []),
     ...discoverRooms,
   ];
 
+  const renderRoomItem = ({ item }: { item: ChatRoom | { type: 'header'; title: string } }) => {
+    if ('type' in item && item.type === 'header') {
+      return <Text style={styles.sectionTitle}>{item.title}</Text>;
+    }
+    const room = localizeRoom(item as ChatRoom, language);
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate('ChatRoom', {
+            roomId: room.id,
+            roomName: room.name,
+          })
+        }
+        activeOpacity={0.85}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.cardNameRow}>
+            {room.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <Text style={styles.verifiedIcon}>✓</Text>
+              </View>
+            )}
+            <Text style={styles.cardName} numberOfLines={1}>{room.name}</Text>
+          </View>
+          {room.isJoined ? (
+            <TouchableOpacity
+              onPress={() => handleLeaveRoom(room.id)}
+              style={styles.leaveButton}
+            >
+              <Text style={styles.leaveText}>{t.community.leave}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => handleJoinRoom(room.id)}
+              style={styles.joinButton}
+            >
+              <Text style={styles.joinText}>{t.community.join}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text style={styles.cardDesc} numberOfLines={2}>{room.description}</Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.roomTypeBadge}>{getRoomTypeLabel(room.type)}</Text>
+          <Text style={styles.memberCount}>{room.memberCount.toLocaleString()} {t.community.memberCount}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // ── Main Render ──
+
+  if (roomsLoading) {
+    return (
+      <View style={styles.container}>
+        <Header title={t.community.title} />
+        <LoadingSpinner />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Header title="粉丝社区" />
+      <Header title={t.community.title} />
+
+      {/* Tab Switcher */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'rooms' && styles.tabActive]}
+          onPress={() => setActiveTab('rooms')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabText, activeTab === 'rooms' && styles.tabTextActive]}>
+            {t.community.discoverRooms}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'buddies' && styles.tabActive]}
+          onPress={() => handleTabChange('buddies')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabText, activeTab === 'buddies' && styles.tabTextActive]}>
+            {t.community.discoverBuddies}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
-        data={listData}
-        keyExtractor={(item: ListItem, idx: number) =>
-          item.type === 'header' ? `h-${idx}` : (item as ChatRoom).id
+        data={roomListData}
+        keyExtractor={(item, idx) =>
+          'type' in item && item.type === 'header' ? `rh-${idx}` : (item as ChatRoom).id
         }
         contentContainerStyle={styles.list}
-        renderItem={({ item }: { item: ListItem }) => {
-          if ('type' in item && item.type === 'header') {
-            return <Text style={styles.sectionTitle}>{item.title}</Text>;
-          }
-          const room = item as ChatRoom;
-          return (
-            <TouchableOpacity
-              style={styles.roomCard}
-              onPress={() =>
-                navigation.navigate('ChatRoom', {
-                  roomId: room.id,
-                  roomName: room.name,
-                })
-              }
-            >
-              <View style={styles.roomHeader}>
-                <View style={styles.roomNameRow}>
-                  {room.isVerified && (
-                    <View style={styles.verifiedBadge}>
-                      <Text style={styles.verifiedIcon}>✓</Text>
-                    </View>
-                  )}
-                  <Text style={styles.roomName} numberOfLines={1}>{room.name}</Text>
-                </View>
-                {room.isJoined ? (
-                  <TouchableOpacity
-                    onPress={() => handleLeave(room.id)}
-                    style={styles.leaveButton}
-                  >
-                    <Text style={styles.leaveText}>退出</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => handleJoin(room.id)}
-                    style={styles.joinButton}
-                  >
-                    <Text style={styles.joinText}>加入</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <Text style={styles.roomDesc} numberOfLines={2}>{room.description}</Text>
-              <View style={styles.roomFooter}>
-                <Text style={styles.roomType}>{room.type === 'artist' ? '艺人' : room.type === 'venue' ? '场馆' : '演出'}</Text>
-                <Text style={styles.roomMembers}>{room.memberCount} 位成员</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={renderRoomItem}
         ListEmptyComponent={
-          <EmptyState icon="💬" title="暂无聊天室" message="粉丝社区即将上线" />
+          <EmptyState icon="—" title={t.community.emptyRooms} message={t.community.emptyRoomsDesc} />
         }
       />
     </View>
@@ -139,7 +202,44 @@ export default function ChatRoomListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  list: { padding: spacing.xl },
+  list: { padding: spacing.xl, paddingBottom: spacing.xxxl },
+
+  // Tab bar
+  tabBar: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 3,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  tabText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Sections
   sectionTitle: {
     fontSize: fontSize.lg,
     fontWeight: '700',
@@ -147,21 +247,28 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
-  roomCard: {
+
+  // Room card
+  card: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
+    shadowColor: '#9578C8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 3,
   },
-  roomHeader: {
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  roomNameRow: {
+  cardNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
@@ -180,11 +287,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  roomName: {
+  cardName: {
     fontSize: fontSize.md,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
+  },
+  cardDesc: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    lineHeight: 20,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  roomTypeBadge: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    backgroundColor: `${colors.primary}12`,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    fontWeight: '600',
+    overflow: 'hidden',
+  },
+  memberCount: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
   },
   joinButton: {
     backgroundColor: colors.primary,
@@ -208,28 +339,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.xs,
     fontWeight: '600',
-  },
-  roomDesc: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    lineHeight: 20,
-  },
-  roomFooter: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  roomType: {
-    fontSize: fontSize.xs,
-    color: colors.primary,
-    backgroundColor: `${colors.primary}10`,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-    fontWeight: '600',
-  },
-  roomMembers: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
   },
 });

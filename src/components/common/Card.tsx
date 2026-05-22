@@ -6,13 +6,12 @@ import { borderRadius, spacing, shadow } from '../../constants/layout';
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  accent?: boolean;
+  glass?: boolean;
 }
 
-export default function Card({ children, style, accent = false }: CardProps) {
+export default function Card({ children, style, glass = true }: CardProps) {
   return (
-    <View style={[styles.card, accent && styles.accentCard, style]}>
-      {accent && <View style={styles.accentLine} />}
+    <View style={[styles.card, glass && styles.glass, style]}>
       {children}
     </View>
   );
@@ -21,24 +20,12 @@ export default function Card({ children, style, accent = false }: CardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+  },
+  glass: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
     ...shadow.card,
-  },
-  accentCard: {
-    borderTopWidth: 0,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-  },
-  accentLine: {
-    height: 4,
-    backgroundColor: colors.primary,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    marginHorizontal: -spacing.lg,
-    marginTop: -spacing.lg,
-    marginBottom: spacing.md,
   },
 });

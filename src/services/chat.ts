@@ -24,6 +24,8 @@ const MOCK_ROOMS: ChatRoom[] = [
     isVerified: true,
     isJoined: false,
     createdAt: '2025-01-01T00:00:00Z',
+    nameEn: 'Taylor Swift China Fan Club',
+    descriptionEn: 'Swiftie community in China, sharing concert info and fan experiences',
   },
   {
     id: 'room_2',
@@ -35,6 +37,8 @@ const MOCK_ROOMS: ChatRoom[] = [
     isVerified: true,
     isJoined: false,
     createdAt: '2025-02-15T00:00:00Z',
+    nameEn: 'Music Festival Buddy Finder',
+    descriptionEn: 'Find music festival buddies, share rides and hotel rooms',
   },
   {
     id: 'room_3',
@@ -46,6 +50,8 @@ const MOCK_ROOMS: ChatRoom[] = [
     isVerified: true,
     isJoined: false,
     createdAt: '2025-03-01T00:00:00Z',
+    nameEn: 'Bird\'s Nest Stadium Guide',
+    descriptionEn: 'Venue tips, seat recommendations, and insider advice for the National Stadium',
   },
   {
     id: 'room_4',
@@ -57,6 +63,8 @@ const MOCK_ROOMS: ChatRoom[] = [
     isVerified: false,
     isJoined: false,
     createdAt: '2025-04-10T00:00:00Z',
+    nameEn: 'K-pop Concert Group',
+    descriptionEn: 'K-pop family concert info exchange and group meetups',
   },
   {
     id: 'room_5',
@@ -68,6 +76,8 @@ const MOCK_ROOMS: ChatRoom[] = [
     isVerified: true,
     isJoined: false,
     createdAt: '2025-01-20T00:00:00Z',
+    nameEn: 'Jay Chou Carnival Tour',
+    descriptionEn: 'Jay Chou fans unite! Share tour info and concert tips from different cities',
   },
 ];
 
@@ -136,6 +146,7 @@ export async function sendMessage(
     content: params.content,
     timestamp: new Date().toISOString(),
     isAlert: false,
+    ...(params.itineraryShare ? { itineraryShare: params.itineraryShare } : {}),
   };
 
   const key = `${STORAGE_KEYS.CHAT_MESSAGES_PREFIX}${params.roomId}`;

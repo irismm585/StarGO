@@ -11,8 +11,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
-import { fontSize, spacing } from '../../constants/layout';
+import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import {
@@ -24,6 +25,7 @@ import {
 export default function RegisterScreen() {
   const navigation = useNavigation();
   const { register, error, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -45,7 +47,7 @@ export default function RegisterScreen() {
     if (pwError) { setLocalError(pwError); return; }
 
     if (password !== confirmPassword) {
-      setLocalError('两次密码输入不一致');
+      setLocalError(t.auth.passwordMismatch);
       return;
     }
 
@@ -79,12 +81,12 @@ export default function RegisterScreen() {
           style={styles.header}
         >
           <Text style={styles.logo}>StarGo</Text>
-          <Text style={styles.tagline}>加入粉丝社区</Text>
+          <Text style={styles.tagline}>{t.auth.joinTagline}</Text>
         </LinearGradient>
 
         <View style={styles.formCard}>
-          <Text style={styles.welcomeText}>创建账号</Text>
-          <Text style={styles.subtitle}>开启你的AI演出旅行体验</Text>
+          <Text style={styles.welcomeText}>{t.auth.registerTitle}</Text>
+          <Text style={styles.subtitle}>{t.auth.registerSubtitle}</Text>
 
           {displayError && (
             <View style={styles.errorBanner}>
@@ -93,23 +95,23 @@ export default function RegisterScreen() {
           )}
 
           <Input
-            label="用户名"
-            placeholder="取个名字吧"
+            label={t.auth.username}
+            placeholder={t.auth.usernamePlaceholder}
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
           />
 
           <Input
-            label="昵称（选填）"
-            placeholder="你的显示名称"
+            label={t.auth.displayName}
+            placeholder={t.auth.displayNamePlaceholder}
             value={displayName}
             onChangeText={setDisplayName}
           />
 
           <Input
-            label="邮箱"
-            placeholder="请输入邮箱地址"
+            label={t.auth.email}
+            placeholder={t.auth.emailPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -117,23 +119,23 @@ export default function RegisterScreen() {
           />
 
           <Input
-            label="密码"
-            placeholder="至少6位字符"
+            label={t.auth.password}
+            placeholder={t.auth.passwordRegisterPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
 
           <Input
-            label="确认密码"
-            placeholder="再次输入密码"
+            label={t.auth.passwordConfirm}
+            placeholder={t.auth.passwordConfirmPlaceholder}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
           />
 
           <Button
-            title="注册"
+            title={t.auth.register}
             onPress={handleRegister}
             loading={isLoading}
           />
@@ -143,8 +145,8 @@ export default function RegisterScreen() {
             style={styles.switchButton}
           >
             <Text style={styles.switchText}>
-              已有账号？
-              <Text style={styles.switchLink}>立即登录</Text>
+              {t.auth.hasAccount}
+              <Text style={styles.switchLink}>{t.auth.loginNow}</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -160,8 +162,8 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingBottom: 60,
     alignItems: 'center',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    borderBottomLeftRadius: borderRadius.xxl,
+    borderBottomRightRadius: borderRadius.xxl,
   },
   logo: {
     fontSize: 42,
@@ -178,12 +180,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginHorizontal: spacing.xl,
     marginTop: -30,
-    borderRadius: 24,
+    borderRadius: borderRadius.xxl,
     padding: spacing.xxl,
-    shadowColor: colors.cardShadow,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#9578C8',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
+    shadowOpacity: 0.08,
+    shadowRadius: 28,
     elevation: 8,
   },
   welcomeText: {
@@ -198,12 +202,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.error,
   },
   errorText: {
     color: colors.error,

@@ -40,5 +40,6 @@ export interface SavedMemorial {
   userId: string;
   eventName: string;
   content: MemorialContent;
+  contentEn?: MemorialContent;
   createdAt: string;
 }

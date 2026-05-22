@@ -26,4 +26,6 @@ export const STORAGE_KEYS = {
   CHAT_MESSAGES_PREFIX: 'stargo_chat_messages_',
   MEMORIALS: 'stargo_memorials',
   THEME: 'stargo_theme',
+  BUDDIES: 'stargo_buddies',
+  FRIEND_REQUESTS: 'stargo_friend_requests',
 };

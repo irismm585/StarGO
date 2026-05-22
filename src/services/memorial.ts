@@ -14,13 +14,15 @@ function generateId(): string {
 export async function generateContent(
   params: MemorialGenerationParams,
   signal?: AbortSignal,
-): Promise<MemorialContent> {
-  return deepseekGenerate(params, signal);
+): Promise<{ content: MemorialContent; contentEn: MemorialContent }> {
+  const bilingual = await deepseekGenerate(params, signal);
+  return { content: bilingual.zh, contentEn: bilingual.en };
 }
 
 export async function saveMemorial(
   userId: string,
   content: MemorialContent,
+  contentEn?: MemorialContent,
 ): Promise<SavedMemorial> {
   const saved = await storage.get<SavedMemorial[]>(STORAGE_KEYS.MEMORIALS) || [];
 
@@ -29,6 +31,7 @@ export async function saveMemorial(
     userId,
     eventName: content.eventName,
     content: { ...content, userId },
+    ...(contentEn ? { contentEn: { ...contentEn, userId } } : {}),
     createdAt: new Date().toISOString(),
   };
 

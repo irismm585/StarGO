@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Share } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Share, TouchableOpacity } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing } from '../../constants/layout';
@@ -9,6 +9,7 @@ import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import ContentPreview from '../../components/memorial/ContentPreview';
+import { useTranslation } from '../../contexts/LanguageContext';
 import type { MemorialStackParamList } from '../../navigation/MemorialStack';
 
 type PreviewRoute = RouteProp<MemorialStackParamList, 'MemorialPreview'>;
@@ -17,18 +18,26 @@ export default function MemorialPreviewScreen() {
   const route = useRoute<PreviewRoute>();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const { content } = route.params;
+  const { t } = useTranslation();
+  const { content, contentEn } = route.params;
+  const [memorialLang, setMemorialLang] = useState<'zh' | 'en'>('zh');
+
+  const displayContent = memorialLang === 'en' && contentEn ? contentEn : content;
+
+  const toggleMemorialLang = () => {
+    setMemorialLang((prev) => (prev === 'zh' ? 'en' : 'zh'));
+  };
 
   const handleSave = async () => {
     if (!user) return;
-    await saveMemorial(user.id, content);
+    await saveMemorial(user.id, content, contentEn);
     navigation.goBack();
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `${content.captions.medium}\n\n${content.hashtags.join(' ')}`,
+        message: `${displayContent.captions.medium}\n\n${displayContent.hashtags.join(' ')}`,
       });
     } catch {
       // user cancelled
@@ -39,9 +48,21 @@ export default function MemorialPreviewScreen() {
     navigation.goBack();
   };
 
+  const langToggle = (
+    <TouchableOpacity
+      style={styles.langBtn}
+      onPress={toggleMemorialLang}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.langBtnText}>
+        {memorialLang === 'zh' ? 'EN' : '中'}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      <Header title="纪念内容" showBack />
+      <Header title={t.memorial.preview} showBack rightAction={langToggle} />
 
       <ScrollView
         style={styles.scroll}
@@ -50,27 +71,43 @@ export default function MemorialPreviewScreen() {
       >
         {/* Event Info */}
         <Card style={styles.eventCard}>
-          <Text style={styles.eventName}>{content.eventName}</Text>
+          <Text style={styles.eventName}>{displayContent.eventName}</Text>
           <View style={styles.templateBadge}>
-            <Text style={styles.templateBadgeText}>{content.template}</Text>
+            <Text style={styles.templateBadgeText}>{displayContent.template}</Text>
           </View>
         </Card>
 
         {/* Captions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>文案</Text>
-          <ContentPreview title="短文案（朋友圈/Instagram）" content={content.captions.short} accentColor={colors.primary} />
-          <ContentPreview title="中长文（微博/小红书）" content={content.captions.medium} accentColor={colors.accent} />
-          <ContentPreview title="长故事（公众号/备忘录）" content={content.captions.long} accentColor={colors.success} />
+          <Text style={styles.sectionTitle}>
+            {memorialLang === 'zh' ? '文案' : 'Captions'}
+          </Text>
+          <ContentPreview
+            title={memorialLang === 'zh' ? '短文案（朋友圈/Instagram）' : 'Short (Moments/Instagram)'}
+            content={displayContent.captions.short}
+            accentColor={colors.primary}
+          />
+          <ContentPreview
+            title={memorialLang === 'zh' ? '中长文（微博/小红书）' : 'Medium (Weibo/Xiaohongshu)'}
+            content={displayContent.captions.medium}
+            accentColor={colors.accent}
+          />
+          <ContentPreview
+            title={memorialLang === 'zh' ? '长故事（公众号/备忘录）' : 'Long Story (Blog/Memo)'}
+            content={displayContent.captions.long}
+            accentColor={colors.success}
+          />
         </View>
 
         {/* Hashtags */}
-        {content.hashtags.length > 0 && (
+        {displayContent.hashtags.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>话题标签</Text>
+            <Text style={styles.sectionTitle}>
+              {memorialLang === 'zh' ? '话题标签' : 'Hashtags'}
+            </Text>
             <Card>
               <View style={styles.hashtagRow}>
-                {content.hashtags.map((tag, idx) => (
+                {displayContent.hashtags.map((tag, idx) => (
                   <View key={idx} style={styles.hashtag}>
                     <Text style={styles.hashtagText}>{tag}</Text>
                   </View>
@@ -81,10 +118,12 @@ export default function MemorialPreviewScreen() {
         )}
 
         {/* Platform Posts */}
-        {content.suggestedPosts.length > 0 && (
+        {displayContent.suggestedPosts.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>平台推文</Text>
-            {content.suggestedPosts.map((post, idx) => (
+            <Text style={styles.sectionTitle}>
+              {memorialLang === 'zh' ? '平台推文' : 'Platform Posts'}
+            </Text>
+            {displayContent.suggestedPosts.map((post, idx) => (
               <ContentPreview
                 key={idx}
                 title={`${post.platform.toUpperCase()}`}
@@ -97,9 +136,9 @@ export default function MemorialPreviewScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <Button title="保存" onPress={handleSave} style={styles.actionBtn} />
-          <Button title="分享" onPress={handleShare} variant="outline" style={styles.actionBtn} />
-          <Button title="重新生成" onPress={handleRegenerate} variant="ghost" />
+          <Button title={t.memorial.save} onPress={handleSave} style={styles.actionBtn} />
+          <Button title={t.memorial.share} onPress={handleShare} variant="outline" style={styles.actionBtn} />
+          <Button title={t.memorial.regenerate} onPress={handleRegenerate} variant="ghost" />
         </View>
       </ScrollView>
     </View>
@@ -110,6 +149,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxxl },
+  langBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   eventCard: {
     marginHorizontal: spacing.xl,
     marginTop: spacing.lg,

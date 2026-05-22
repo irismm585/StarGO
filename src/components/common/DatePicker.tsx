@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 interface DatePickerProps {
   label: string;
@@ -43,6 +44,7 @@ export default function DatePicker({
   onChange,
   error,
 }: DatePickerProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   const parsed = useMemo(() => {
@@ -73,7 +75,7 @@ export default function DatePicker({
   const maxDay = daysInMonth(Number(tempYear), Number(tempMonth));
   const validDays = days.slice(0, maxDay);
 
-  const displayText = value || '点击选择日期';
+  const displayText = value || t.datePicker.placeholder;
 
   return (
     <View style={styles.container}>
@@ -105,18 +107,18 @@ export default function DatePicker({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setVisible(false)}>
-                <Text style={styles.cancelText}>取消</Text>
+                <Text style={styles.cancelText}>{t.common.cancel}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>选择日期</Text>
+              <Text style={styles.modalTitle}>{t.datePicker.title}</Text>
               <TouchableOpacity onPress={confirmDate}>
-                <Text style={styles.confirmText}>确定</Text>
+                <Text style={styles.confirmText}>{t.common.confirm}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.pickerRow}>
               {/* Year */}
               <View style={styles.pickerColumn}>
-                <Text style={styles.columnLabel}>年</Text>
+                <Text style={styles.columnLabel}>{t.datePicker.year}</Text>
                 <ScrollView
                   style={styles.scrollColumn}
                   showsVerticalScrollIndicator={false}
@@ -146,7 +148,7 @@ export default function DatePicker({
 
               {/* Month */}
               <View style={styles.pickerColumn}>
-                <Text style={styles.columnLabel}>月</Text>
+                <Text style={styles.columnLabel}>{t.datePicker.month}</Text>
                 <ScrollView
                   style={styles.scrollColumn}
                   showsVerticalScrollIndicator={false}
@@ -176,7 +178,7 @@ export default function DatePicker({
 
               {/* Day */}
               <View style={styles.pickerColumn}>
-                <Text style={styles.columnLabel}>日</Text>
+                <Text style={styles.columnLabel}>{t.datePicker.day}</Text>
                 <ScrollView
                   style={styles.scrollColumn}
                   showsVerticalScrollIndicator={false}

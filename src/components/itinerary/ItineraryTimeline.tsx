@@ -6,14 +6,15 @@ import type { DaySchedule } from '../../types/itinerary';
 
 interface TimelineProps {
   days: DaySchedule[];
+  title?: string;
 }
 
-export default function ItineraryTimeline({ days }: TimelineProps) {
+export default function ItineraryTimeline({ days, title }: TimelineProps) {
   const [expandedDay, setExpandedDay] = useState(0);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>每日行程</Text>
+      <Text style={styles.sectionTitle}>{title || '每日行程'}</Text>
       {/* Day tabs */}
       <View style={styles.dayTabs}>
         {days.map((day, idx) => (

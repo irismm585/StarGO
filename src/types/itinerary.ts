@@ -77,6 +77,7 @@ export interface SavedItinerary {
   hotelPref: string;
   foodPref: string;
   itineraryData: Itinerary;
+  itineraryDataEn?: Itinerary;
   createdAt: string;
   updatedAt: string;
 }

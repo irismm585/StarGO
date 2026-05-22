@@ -13,16 +13,18 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isDark, toggle } = useTheme();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
-    Alert.alert('退出登录', '确定要退出登录吗？', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(t.profile.logout, t.profile.logoutConfirm, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: '退出',
+        text: t.profile.logout,
         style: 'destructive',
         onPress: logout,
       },
@@ -31,7 +33,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="设置" showBack />
+      <Header title={t.profile.settings} showBack />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Account */}
@@ -84,7 +86,7 @@ export default function SettingsScreen() {
         {/* Logout */}
         <View style={styles.logoutSection}>
           <Button
-            title="退出登录"
+            title={t.profile.logout}
             onPress={handleLogout}
             variant="outline"
           />

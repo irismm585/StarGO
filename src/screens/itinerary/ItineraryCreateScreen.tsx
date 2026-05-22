@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import { generateItinerary, saveItinerary, updateItinerary } from '../../services/itinerary';
 import Header from '../../components/common/Header';
 import Input from '../../components/common/Input';
@@ -29,6 +30,7 @@ export default function ItineraryCreateScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<CreateRoute>();
   const { user } = useAuth();
+  const { t, language } = useTranslation();
 
   const editData = route.params?.editData ?? null;
   const prefill = route.params?.prefill ?? null;
@@ -54,6 +56,29 @@ export default function ItineraryCreateScreen() {
   const [hotelPref, setHotelPref] = useState(editData?.hotelPref ?? '');
   const [foodPref, setFoodPref] = useState(editData?.foodPref ?? '');
 
+  // Reset form on every focus unless editing an existing saved trip
+  useFocusEffect(
+    useCallback(() => {
+      if (isEditing) return;
+      setEventName(prefill?.eventName ?? '');
+      setVenueName(prefill?.venueName ?? '');
+      setShowCustomVenue(false);
+      setDepartureProvince('');
+      setDepartureCity(prefill?.departureCity ?? '');
+      setShowCustomDeparture(false);
+      setCity(prefill?.city ?? '');
+      setShowCustomCity(false);
+      setEventDate(prefill?.eventDate ?? '');
+      setStartDate(prefill?.startDate ?? '');
+      setEndDate(prefill?.endDate ?? '');
+      setBudget('');
+      setTransportPref('');
+      setHotelPref('');
+      setFoodPref('');
+      setError(null);
+    }, [isEditing, prefill?.eventName, prefill?.venueName, prefill?.city, prefill?.eventDate, prefill?.departureCity, prefill?.startDate, prefill?.endDate])
+  );
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +86,12 @@ export default function ItineraryCreateScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const venueOptions = useMemo(() => {
-    const venues = getVenuesByCity(city.trim());
+    const venues = getVenuesByCity(city.trim(), language);
     return [
-      { label: '自行输入...', value: '__custom__' },
+      { label: t.itinerary.customVenueOption, value: '__custom__' },
       ...venues.map((v) => ({ label: v, value: v })),
     ];
-  }, [city]);
+  }, [city, language]);
 
   const startTimer = () => {
     setElapsed(0);
@@ -83,15 +108,15 @@ export default function ItineraryCreateScreen() {
   };
 
   const validate = (): boolean => {
-    if (!eventName.trim()) { setError('请输入演出名称'); return false; }
-    if (!venueName.trim()) { setError('请选择或输入场馆'); return false; }
-    if (!departureCity.trim()) { setError('请选择或输入出发城市'); return false; }
-    if (!city.trim()) { setError('请选择目的地城市'); return false; }
-    if (!eventDate.trim()) { setError('请选择演出日期'); return false; }
-    if (!startDate.trim()) { setError('请选择出发日期'); return false; }
-    if (!endDate.trim()) { setError('请选择结束日期'); return false; }
+    if (!eventName.trim()) { setError(t.itinerary.error.eventName); return false; }
+    if (!venueName.trim()) { setError(t.itinerary.error.venue); return false; }
+    if (!departureCity.trim()) { setError(t.itinerary.error.departureCity); return false; }
+    if (!city.trim()) { setError(t.itinerary.error.city); return false; }
+    if (!eventDate.trim()) { setError(t.itinerary.error.eventDate); return false; }
+    if (!startDate.trim()) { setError(t.itinerary.error.startDate); return false; }
+    if (!endDate.trim()) { setError(t.itinerary.error.endDate); return false; }
     if (!budget.trim() || isNaN(Number(budget)) || Number(budget) <= 0) {
-      setError('请输入有效预算'); return false;
+      setError(t.itinerary.error.budget); return false;
     }
 
     // Date ordering validation
@@ -100,17 +125,17 @@ export default function ItineraryCreateScreen() {
     const ev = new Date(eventDate.trim());
 
     if (isNaN(s.getTime()) || isNaN(e.getTime()) || isNaN(ev.getTime())) {
-      setError('日期格式无效，请使用 YYYY-MM-DD 格式');
+      setError(t.itinerary.error.dateFormat);
       return false;
     }
 
     if (s >= e) {
-      setError('出发日期必须在返程日期之前');
+      setError(t.itinerary.error.startBeforeEnd);
       return false;
     }
 
     if (ev < s || ev > e) {
-      setError('演出日期必须在出发日期和返程日期之间');
+      setError(t.itinerary.error.eventDateInRange);
       return false;
     }
 
@@ -130,9 +155,9 @@ export default function ItineraryCreateScreen() {
       endDate: endDate.trim(),
       eventDate: eventDate.trim(),
       budget: Number(budget),
-      transportPref: transportPref.trim() || '无特殊要求',
-      hotelPref: hotelPref.trim() || '无特殊要求',
-      foodPref: foodPref.trim() || '无特殊要求',
+      transportPref: transportPref.trim() || t.itinerary.transportPlaceholder,
+      hotelPref: hotelPref.trim() || '—',
+      foodPref: foodPref.trim() || '—',
     };
 
     setIsGenerating(true);
@@ -141,32 +166,33 @@ export default function ItineraryCreateScreen() {
     abortRef.current = controller;
 
     try {
-      const result = await generateItinerary(params, controller.signal);
+      const result = await generateItinerary(params, language, controller.signal);
       stopTimer();
 
       // Auto-save or update
       let savedId: string | undefined;
       if (user) {
         if (isEditing && editData) {
-          await updateItinerary(editData.id, result, params);
+          await updateItinerary(editData.id, result.itineraryData, params, result.itineraryDataEn);
           savedId = editData.id;
         } else {
-          const saved = await saveItinerary(user.id, result, params);
+          const saved = await saveItinerary(user.id, result.itineraryData, params, result.itineraryDataEn);
           savedId = saved.id;
         }
       }
 
       navigation.replace('ItineraryDetail', {
-        itineraryData: result,
+        itineraryData: result.itineraryData,
+        itineraryDataEn: result.itineraryDataEn,
         savedId,
         title: `${params.eventName} · ${params.city}`,
       });
     } catch (e: any) {
       stopTimer();
       if (e.name === 'AbortError') {
-        setError('已取消生成');
+        setError(t.itinerary.error.cancelled);
       } else {
-        setError(e.message || '生成失败，请重试');
+        setError(e.message || t.itinerary.error.generationFailed);
       }
     } finally {
       setIsGenerating(false);
@@ -183,12 +209,12 @@ export default function ItineraryCreateScreen() {
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
-    return `${m}分${sec}秒`;
+    return `${m}${t.itinerary.min}${sec}${t.itinerary.sec}`;
   };
 
   return (
     <View style={styles.container}>
-      <Header title="规划行程" showBack />
+      <Header title={t.itinerary.create} showBack />
 
       <ScrollView
         style={styles.scroll}
@@ -196,18 +222,58 @@ export default function ItineraryCreateScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Event Info */}
+        {/* Event Info — order: Event Name → Destination → Venue → Departure */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>演出信息</Text>
+          <Text style={styles.sectionTitle}>{t.eventDetail.info}</Text>
           <Card>
             <Input
-              label="演出名称"
-              placeholder="例：Taylor Swift 时代巡演"
+              label={t.itinerary.eventName}
+              placeholder={t.itinerary.eventNamePlaceholder}
               value={eventName}
               onChangeText={setEventName}
             />
+
+            {/* Destination City */}
             <PickerSelect
-              label="场馆"
+              label={t.itinerary.destinationCity}
+              options={getCityPickerOptions(language)}
+              value={
+                showCustomCity
+                  ? '__custom_city__'
+                  : getCityPickerOptions(language).some((o) => o.value === city)
+                    ? city
+                    : ''
+              }
+              onChange={(val) => {
+                if (val === '__custom_city__') {
+                  setShowCustomCity(true);
+                  setCity('');
+                  setVenueName('');
+                } else {
+                  setShowCustomCity(false);
+                  setCity(val);
+                }
+              }}
+              placeholder={t.itinerary.selectCity}
+            />
+            {showCustomCity && (
+              <Input
+                label={t.itinerary.customCity}
+                placeholder={t.itinerary.customCityPlaceholder}
+                value={city}
+                onChangeText={(text) => {
+                  setCity(text);
+                  const venues = getVenuesByCity(text.trim(), language);
+                  if (!showCustomVenue && venueName && !venues.includes(venueName)) {
+                    setVenueName('');
+                  }
+                }}
+              />
+            )}
+
+            {/* Venue */}
+            <PickerSelect
+              label={t.itinerary.venue}
               options={venueOptions}
               value={
                 showCustomVenue
@@ -225,19 +291,21 @@ export default function ItineraryCreateScreen() {
                   setVenueName(val);
                 }
               }}
-              placeholder={city.trim() ? '请选择场馆' : '请先输入目的地城市'}
+              placeholder={city.trim() ? t.itinerary.selectVenue : t.itinerary.inputVenueFirst}
             />
             {showCustomVenue && (
               <Input
-                label="自行输入场馆"
-                placeholder="输入场馆名称"
+                label={t.itinerary.customVenue}
+                placeholder={t.itinerary.customVenuePlaceholder}
                 value={venueName}
                 onChangeText={setVenueName}
               />
             )}
+
+            {/* Departure Province & City */}
             <PickerSelect
-              label="出发省份"
-              options={getProvinceOptions()}
+              label={t.itinerary.departureProvince}
+              options={getProvinceOptions(language)}
               value={departureProvince}
               onChange={(val) => {
                 if (val === '__custom_province__') {
@@ -249,65 +317,29 @@ export default function ItineraryCreateScreen() {
                   setDepartureCity('');
                 }
               }}
-              placeholder="选择出发省份"
+              placeholder={t.itinerary.selectDepartureProvince}
             />
             {departureProvince && departureProvince !== '__custom_province__' && (
               <PickerSelect
-                label="出发城市"
-                options={getCitiesByProvince(departureProvince)}
+                label={t.itinerary.departureCity}
+                options={getCitiesByProvince(departureProvince, language)}
                 value={
-                  getCitiesByProvince(departureProvince).some((o) => o.value === departureCity)
+                  getCitiesByProvince(departureProvince, language).some((o) => o.value === departureCity)
                     ? departureCity
                     : ''
                 }
                 onChange={(val) => {
                   setDepartureCity(val);
                 }}
-                placeholder="选择出发城市"
+                placeholder={t.itinerary.departureCityPlaceholder}
               />
             )}
             {showCustomDeparture && (
               <Input
-                label="自行输入出发城市"
-                placeholder="输入城市名称"
+                label={t.itinerary.customDepartureCity}
+                placeholder={t.itinerary.customDepartureCity}
                 value={departureCity}
                 onChangeText={setDepartureCity}
-              />
-            )}
-            <PickerSelect
-              label="目的地城市"
-              options={getCityPickerOptions()}
-              value={
-                showCustomCity
-                  ? '__custom_city__'
-                  : getCityPickerOptions().some((o) => o.value === city)
-                    ? city
-                    : ''
-              }
-              onChange={(val) => {
-                if (val === '__custom_city__') {
-                  setShowCustomCity(true);
-                  setCity('');
-                  setVenueName('');
-                } else {
-                  setShowCustomCity(false);
-                  setCity(val);
-                }
-              }}
-              placeholder="选择目的地城市"
-            />
-            {showCustomCity && (
-              <Input
-                label="自行输入城市"
-                placeholder="输入城市名称"
-                value={city}
-                onChangeText={(t) => {
-                  setCity(t);
-                  const venues = getVenuesByCity(t.trim());
-                  if (!showCustomVenue && venueName && !venues.includes(venueName)) {
-                    setVenueName('');
-                  }
-                }}
               />
             )}
           </Card>
@@ -315,20 +347,20 @@ export default function ItineraryCreateScreen() {
 
         {/* Dates */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>日期</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.dateSection}</Text>
           <Card>
             <DatePicker
-              label="演出日期"
+              label={t.itinerary.eventDate}
               value={eventDate}
               onChange={setEventDate}
             />
             <DatePicker
-              label="出发日期"
+              label={t.itinerary.startDate}
               value={startDate}
               onChange={setStartDate}
             />
             <DatePicker
-              label="返程日期"
+              label={t.itinerary.endDate}
               value={endDate}
               onChange={setEndDate}
             />
@@ -337,11 +369,11 @@ export default function ItineraryCreateScreen() {
 
         {/* Budget */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>预算</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.budgetSection}</Text>
           <Card>
             <Input
-              label="总预算（元）"
-              placeholder="例：3000"
+              label={t.itinerary.budget}
+              placeholder={t.itinerary.budgetPlaceholder}
               value={budget}
               onChangeText={setBudget}
               keyboardType="numeric"
@@ -351,23 +383,23 @@ export default function ItineraryCreateScreen() {
 
         {/* Preferences */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>偏好设置</Text>
+          <Text style={styles.sectionTitle}>{t.itinerary.prefSection}</Text>
           <Card>
             <Input
-              label="交通偏好"
-              placeholder="例：高铁、飞机"
+              label={t.itinerary.transportPref}
+              placeholder={t.itinerary.transportPlaceholder}
               value={transportPref}
               onChangeText={setTransportPref}
             />
             <Input
-              label="住宿要求"
-              placeholder="例：距场馆近、经济型"
+              label={t.itinerary.hotelPref}
+              placeholder={t.itinerary.hotelPlaceholder}
               value={hotelPref}
               onChangeText={setHotelPref}
             />
             <Input
-              label="美食偏好"
-              placeholder="例：当地特色、素食"
+              label={t.itinerary.foodPref}
+              placeholder={t.itinerary.foodPlaceholder}
               value={foodPref}
               onChangeText={setFoodPref}
             />
@@ -384,7 +416,7 @@ export default function ItineraryCreateScreen() {
         {/* Generate Button */}
         <View style={styles.generateSection}>
           <Button
-            title={isEditing ? '更新行程' : 'AI 智能生成行程'}
+            title={isEditing ? t.itinerary.update : t.itinerary.generate}
             onPress={handleGenerate}
             loading={isGenerating}
           />
@@ -395,16 +427,16 @@ export default function ItineraryCreateScreen() {
       {isGenerating && (
         <View style={styles.overlay}>
           <View style={styles.overlayContent}>
-            <Text style={styles.overlayIcon}>🚀</Text>
-            <Text style={styles.overlayTitle}>StarGo AI 正在为你规划行程...</Text>
-            <Text style={styles.overlayTimer}>已用时 {formatTime(elapsed)}</Text>
+            <Text style={styles.overlayIcon}>◇</Text>
+            <Text style={styles.overlayTitle}>{t.itinerary.generating}</Text>
+            <Text style={styles.overlayTimer}>{t.itinerary.elapsed} {formatTime(elapsed)}</Text>
             <View style={styles.overlayProgress}>
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${Math.min(elapsed * 5, 90)}%` }]} />
               </View>
             </View>
             <Button
-              title="取消生成"
+              title={t.itinerary.cancel}
               onPress={handleCancel}
               variant="outline"
               fullWidth={false}
@@ -430,14 +462,18 @@ const styles = StyleSheet.create({
   },
   errorBanner: {
     marginHorizontal: spacing.xl,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.error,
   },
-  errorText: { color: colors.error, fontSize: fontSize.sm, textAlign: 'center' },
+  errorText: {
+    color: colors.error,
+    fontSize: fontSize.sm,
+    textAlign: 'center',
+  },
   generateSection: { paddingHorizontal: spacing.xl, marginTop: spacing.md },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -448,15 +484,17 @@ const styles = StyleSheet.create({
   },
   overlayContent: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
+    borderRadius: borderRadius.xxl,
     padding: spacing.xxl,
     marginHorizontal: spacing.xl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: '#9578C8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
     shadowRadius: 24,
-    elevation: 10,
+    elevation: 6,
   },
   overlayIcon: { fontSize: 48, marginBottom: spacing.lg },
   overlayTitle: {

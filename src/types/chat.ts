@@ -3,7 +3,9 @@ export type ChatRoomType = 'artist' | 'venue' | 'event';
 export interface ChatRoom {
   id: string;
   name: string;
+  nameEn?: string;
   description: string;
+  descriptionEn?: string;
   type: ChatRoomType;
   relatedEntity: string;
   coverImageUrl?: string;
@@ -12,6 +14,17 @@ export interface ChatRoom {
   isJoined: boolean;
   lastMessage?: ChatMessage;
   createdAt: string;
+}
+
+export interface ItineraryShareInfo {
+  id: string;
+  eventName: string;
+  city: string;
+  venueName: string;
+  startDate: string;
+  endDate: string;
+  eventDate: string;
+  budget: number;
 }
 
 export interface ChatMessage {
@@ -25,6 +38,7 @@ export interface ChatMessage {
   timestamp: string;
   isAlert: boolean;
   alertReason?: string;
+  itineraryShare?: ItineraryShareInfo;
 }
 
 export interface KeywordFilterResult {
@@ -38,4 +52,5 @@ export interface SendMessageParams {
   content: string;
   userId: string;
   username: string;
+  itineraryShare?: ItineraryShareInfo;
 }
