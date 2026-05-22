@@ -1,26 +1,34 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Modal,
+  FlatList,
+  Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
-import { fontSize, spacing } from '../../constants/layout';
+import { fontSize, spacing, borderRadius } from '../../constants/layout';
+import { useAuth } from '../../contexts/AuthContext';
 import { generateContent } from '../../services/memorial';
+import { getSavedItineraries } from '../../services/itinerary';
 import Header from '../../components/common/Header';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import TemplateSelector from '../../components/memorial/TemplateSelector';
+import { formatDate, formatDateRange } from '../../utils/formatters';
 import type { MemorialTemplate, MemorialGenerationParams } from '../../types/memorial';
+import type { SavedItinerary } from '../../types/itinerary';
 
 const MOODS = ['兴奋', '怀念', '感激', '充满能量', ' bittersweet'];
 
 export default function MemorialGeneratorScreen() {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
 
   const [eventName, setEventName] = useState('');
   const [artistName, setArtistName] = useState('');
@@ -34,6 +42,25 @@ export default function MemorialGeneratorScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const [importableItineraries, setImportableItineraries] = useState<SavedItinerary[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        getSavedItineraries(user.id).then(setImportableItineraries).catch(() => {});
+      }
+    }, [user]),
+  );
+
+  const handleImportFromItinerary = (saved: SavedItinerary) => {
+    setEventName(saved.eventName);
+    setVenueName(saved.venueName);
+    setCity(saved.city);
+    setDate(saved.eventDate);
+    setShowImportModal(false);
+  };
 
   const validate = (): boolean => {
     if (!eventName.trim()) { setError('请输入演出名称'); return false; }
@@ -93,6 +120,19 @@ export default function MemorialGeneratorScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Import from Itinerary */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.importButton}
+            onPress={() => setShowImportModal(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.importIcon}>📋</Text>
+            <Text style={styles.importText}>从已有行程导入</Text>
+            <Text style={styles.importArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Event Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>演出信息</Text>
@@ -158,6 +198,49 @@ export default function MemorialGeneratorScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Import Itinerary Modal */}
+      <Modal
+        visible={showImportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowImportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowImportModal(false)}>
+                <Text style={styles.modalCancelText}>取消</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>选择行程</Text>
+              <View style={{ width: 44 }} />
+            </View>
+
+            {importableItineraries.length === 0 ? (
+              <View style={styles.emptyModal}>
+                <Text style={styles.emptyModalText}>暂无已保存的行程</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={importableItineraries}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.modalList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.itineraryItem}
+                    onPress={() => handleImportFromItinerary(item)}
+                  >
+                    <Text style={styles.itineraryItemTitle}>{item.title}</Text>
+                    <Text style={styles.itineraryItemSubtitle}>
+                      {item.venueName} · {formatDate(item.startDate)} - {formatDate(item.endDate)}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Loading Overlay */}
       {isGenerating && (
@@ -225,4 +308,74 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cancelBtn: { minWidth: 120 },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    borderStyle: 'dashed',
+  },
+  importIcon: { fontSize: 20, marginRight: spacing.md },
+  importText: { flex: 1, fontSize: fontSize.md, fontWeight: '600', color: colors.primary },
+  importArrow: { fontSize: 24, color: colors.primary },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : spacing.xl,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalCancelText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  modalList: {
+    padding: spacing.lg,
+  },
+  emptyModal: {
+    padding: spacing.xxl,
+    alignItems: 'center',
+  },
+  emptyModalText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  itineraryItem: {
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
+    marginBottom: spacing.sm,
+  },
+  itineraryItemTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  itineraryItemSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
 });

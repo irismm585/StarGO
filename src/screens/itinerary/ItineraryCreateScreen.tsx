@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
-import { generateItinerary, saveItinerary } from '../../services/itinerary';
+import { generateItinerary, saveItinerary, updateItinerary } from '../../services/itinerary';
 import Header from '../../components/common/Header';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -19,28 +19,40 @@ import Card from '../../components/common/Card';
 import DatePicker from '../../components/common/DatePicker';
 import PickerSelect from '../../components/common/PickerSelect';
 import { getVenuesByCity } from '../../constants/venues';
-import { getCityPickerOptions } from '../../constants/cities';
+import { getProvinceOptions, getCitiesByProvince, getCityPickerOptions } from '../../constants/cities';
 import type { ItineraryGenerationParams, Itinerary } from '../../types/itinerary';
+import type { ItineraryStackParamList } from '../../navigation/ItineraryStack';
 
-const TRAVEL_STYLES = ['经济型', '舒适型', '豪华型'] as const;
+type CreateRoute = RouteProp<ItineraryStackParamList, 'ItineraryCreate'>;
 
 export default function ItineraryCreateScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<CreateRoute>();
   const { user } = useAuth();
 
-  const [eventName, setEventName] = useState('');
-  const [venueName, setVenueName] = useState('');
-  const [showCustomVenue, setShowCustomVenue] = useState(false);
-  const [departureCity, setDepartureCity] = useState('');
-  const [city, setCity] = useState('');
-  const [showCustomCity, setShowCustomCity] = useState(false);
-  const [eventDate, setEventDate] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [budget, setBudget] = useState('');
-  const [transportPref, setTransportPref] = useState('');
-  const [hotelPref, setHotelPref] = useState('');
-  const [foodPref, setFoodPref] = useState('');
+  const editData = route.params?.editData ?? null;
+  const prefill = route.params?.prefill ?? null;
+  const isEditing = !!editData;
+
+  const [eventName, setEventName] = useState(editData?.eventName ?? prefill?.eventName ?? '');
+  const [venueName, setVenueName] = useState(editData?.venueName ?? prefill?.venueName ?? '');
+  const [showCustomVenue, setShowCustomVenue] = useState(
+    editData ? !getVenuesByCity(editData.city).includes(editData.venueName) : false,
+  );
+  const [departureProvince, setDepartureProvince] = useState('');
+  const [departureCity, setDepartureCity] = useState(editData?.departureCity ?? prefill?.departureCity ?? '');
+  const [showCustomDeparture, setShowCustomDeparture] = useState(false);
+  const [city, setCity] = useState(editData?.city ?? prefill?.city ?? '');
+  const [showCustomCity, setShowCustomCity] = useState(
+    editData ? !getProvinceOptions().some((o) => o.value === editData.city) && !getCitiesByProvince('__international__').some((o) => o.value === editData.city) : false,
+  );
+  const [eventDate, setEventDate] = useState(editData?.eventDate ?? prefill?.eventDate ?? '');
+  const [startDate, setStartDate] = useState(editData?.startDate ?? prefill?.startDate ?? '');
+  const [endDate, setEndDate] = useState(editData?.endDate ?? prefill?.endDate ?? '');
+  const [budget, setBudget] = useState(editData ? String(editData.budget) : '');
+  const [transportPref, setTransportPref] = useState(editData?.transportPref ?? '');
+  const [hotelPref, setHotelPref] = useState(editData?.hotelPref ?? '');
+  const [foodPref, setFoodPref] = useState(editData?.foodPref ?? '');
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -73,14 +85,35 @@ export default function ItineraryCreateScreen() {
   const validate = (): boolean => {
     if (!eventName.trim()) { setError('请输入演出名称'); return false; }
     if (!venueName.trim()) { setError('请选择或输入场馆'); return false; }
-    if (!departureCity.trim()) { setError('请输入出发城市'); return false; }
+    if (!departureCity.trim()) { setError('请选择或输入出发城市'); return false; }
     if (!city.trim()) { setError('请选择目的地城市'); return false; }
     if (!eventDate.trim()) { setError('请选择演出日期'); return false; }
-    if (!startDate.trim()) { setError('请选择开始日期'); return false; }
+    if (!startDate.trim()) { setError('请选择出发日期'); return false; }
     if (!endDate.trim()) { setError('请选择结束日期'); return false; }
     if (!budget.trim() || isNaN(Number(budget)) || Number(budget) <= 0) {
       setError('请输入有效预算'); return false;
     }
+
+    // Date ordering validation
+    const s = new Date(startDate.trim());
+    const e = new Date(endDate.trim());
+    const ev = new Date(eventDate.trim());
+
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || isNaN(ev.getTime())) {
+      setError('日期格式无效，请使用 YYYY-MM-DD 格式');
+      return false;
+    }
+
+    if (s >= e) {
+      setError('出发日期必须在返程日期之前');
+      return false;
+    }
+
+    if (ev < s || ev > e) {
+      setError('演出日期必须在出发日期和返程日期之间');
+      return false;
+    }
+
     return true;
   };
 
@@ -111,13 +144,21 @@ export default function ItineraryCreateScreen() {
       const result = await generateItinerary(params, controller.signal);
       stopTimer();
 
-      // Auto-save
+      // Auto-save or update
+      let savedId: string | undefined;
       if (user) {
-        await saveItinerary(user.id, result, params);
+        if (isEditing && editData) {
+          await updateItinerary(editData.id, result, params);
+          savedId = editData.id;
+        } else {
+          const saved = await saveItinerary(user.id, result, params);
+          savedId = saved.id;
+        }
       }
 
       navigation.replace('ItineraryDetail', {
         itineraryData: result,
+        savedId,
         title: `${params.eventName} · ${params.city}`,
       });
     } catch (e: any) {
@@ -194,12 +235,45 @@ export default function ItineraryCreateScreen() {
                 onChangeText={setVenueName}
               />
             )}
-            <Input
-              label="出发城市"
-              placeholder="你从哪个城市出发？"
-              value={departureCity}
-              onChangeText={setDepartureCity}
+            <PickerSelect
+              label="出发省份"
+              options={getProvinceOptions()}
+              value={departureProvince}
+              onChange={(val) => {
+                if (val === '__custom_province__') {
+                  setShowCustomDeparture(true);
+                  setDepartureProvince('');
+                  setDepartureCity('');
+                } else {
+                  setDepartureProvince(val);
+                  setDepartureCity('');
+                }
+              }}
+              placeholder="选择出发省份"
             />
+            {departureProvince && departureProvince !== '__custom_province__' && (
+              <PickerSelect
+                label="出发城市"
+                options={getCitiesByProvince(departureProvince)}
+                value={
+                  getCitiesByProvince(departureProvince).some((o) => o.value === departureCity)
+                    ? departureCity
+                    : ''
+                }
+                onChange={(val) => {
+                  setDepartureCity(val);
+                }}
+                placeholder="选择出发城市"
+              />
+            )}
+            {showCustomDeparture && (
+              <Input
+                label="自行输入出发城市"
+                placeholder="输入城市名称"
+                value={departureCity}
+                onChangeText={setDepartureCity}
+              />
+            )}
             <PickerSelect
               label="目的地城市"
               options={getCityPickerOptions()}
@@ -310,7 +384,7 @@ export default function ItineraryCreateScreen() {
         {/* Generate Button */}
         <View style={styles.generateSection}>
           <Button
-            title="AI 智能生成行程"
+            title={isEditing ? '更新行程' : 'AI 智能生成行程'}
             onPress={handleGenerate}
             loading={isGenerating}
           />

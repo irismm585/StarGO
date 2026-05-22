@@ -36,6 +36,10 @@ export async function saveItinerary(
     startDate: params.startDate,
     endDate: params.endDate,
     eventDate: params.eventDate,
+    budget: params.budget,
+    transportPref: params.transportPref,
+    hotelPref: params.hotelPref,
+    foodPref: params.foodPref,
     itineraryData: itinerary,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -64,4 +68,36 @@ export async function deleteItinerary(id: string): Promise<void> {
   const saved = await storage.get<SavedItinerary[]>(STORAGE_KEYS.ITINERARIES) || [];
   const filtered = saved.filter((item) => item.id !== id);
   await storage.set(STORAGE_KEYS.ITINERARIES, filtered);
+}
+
+export async function updateItinerary(
+  id: string,
+  itinerary: Itinerary,
+  params: ItineraryGenerationParams,
+): Promise<SavedItinerary> {
+  const saved = await storage.get<SavedItinerary[]>(STORAGE_KEYS.ITINERARIES) || [];
+  const index = saved.findIndex((item) => item.id === id);
+  if (index === -1) throw new Error('Itinerary not found');
+
+  const updated: SavedItinerary = {
+    ...saved[index],
+    title: `${params.eventName} · ${params.city}`,
+    eventName: params.eventName,
+    departureCity: params.departureCity,
+    city: params.city,
+    venueName: params.venueName,
+    startDate: params.startDate,
+    endDate: params.endDate,
+    eventDate: params.eventDate,
+    budget: params.budget,
+    transportPref: params.transportPref,
+    hotelPref: params.hotelPref,
+    foodPref: params.foodPref,
+    itineraryData: itinerary,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saved[index] = updated;
+  await storage.set(STORAGE_KEYS.ITINERARIES, saved);
+  return updated;
 }

@@ -21,6 +21,8 @@ import ItineraryCard from '../../components/itinerary/ItineraryCard';
 import type { SavedItinerary } from '../../types/itinerary';
 import type { ChatRoom } from '../../types/chat';
 import type { SavedMemorial } from '../../types/memorial';
+import { getAllEvents } from '../../constants/events';
+import type { MockEvent } from '../../constants/events';
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -29,6 +31,7 @@ export default function HomeScreen() {
   const [itineraries, setItineraries] = useState<SavedItinerary[]>([]);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [memorials, setMemorials] = useState<SavedMemorial[]>([]);
+  const [events] = useState<MockEvent[]>(getAllEvents);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -123,6 +126,25 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.quickLabel}>生成纪念</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Hot Events */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>热门演出推荐</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventsScroll}>
+          {events.map((event) => (
+            <TouchableOpacity
+              key={event.id}
+              style={styles.eventCard}
+              onPress={() => navigation.navigate('EventDetail', { event })}
+            >
+              <Text style={styles.eventCardIcon}>{event.image}</Text>
+              <Text style={styles.eventCardName} numberOfLines={2}>{event.eventName}</Text>
+              <Text style={styles.eventCardVenue} numberOfLines={1}>{event.venueName}</Text>
+              <Text style={styles.eventCardDate}>{event.date}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Saved Itineraries */}
@@ -319,6 +341,39 @@ const styles = StyleSheet.create({
   roomArrow: {
     fontSize: 24,
     color: colors.textMuted,
+  },
+  eventsScroll: {
+    marginBottom: spacing.md,
+  },
+  eventCard: {
+    width: 180,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginRight: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  eventCardIcon: {
+    fontSize: 32,
+    marginBottom: spacing.sm,
+  },
+  eventCardName: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.xs,
+    lineHeight: 18,
+  },
+  eventCardVenue: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  eventCardDate: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    fontWeight: '600',
   },
   memorialItem: {
     backgroundColor: colors.surface,

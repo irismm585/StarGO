@@ -3,11 +3,21 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ItineraryListScreen from '../screens/itinerary/ItineraryListScreen';
 import ItineraryCreateScreen from '../screens/itinerary/ItineraryCreateScreen';
 import ItineraryDetailScreen from '../screens/itinerary/ItineraryDetailScreen';
-import type { Itinerary } from '../types/itinerary';
+import type { Itinerary, SavedItinerary } from '../types/itinerary';
+
+export type ItineraryPrefill = {
+  eventName?: string;
+  venueName?: string;
+  city?: string;
+  eventDate?: string;
+  startDate?: string;
+  endDate?: string;
+  departureCity?: string;
+};
 
 export type ItineraryStackParamList = {
   ItineraryList: undefined;
-  ItineraryCreate: undefined;
+  ItineraryCreate: { editData?: SavedItinerary; prefill?: ItineraryPrefill } | undefined;
   ItineraryDetail: { itineraryData: Itinerary; savedId?: string; title?: string };
 };
 

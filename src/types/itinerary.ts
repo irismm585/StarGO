@@ -72,6 +72,10 @@ export interface SavedItinerary {
   startDate: string;
   endDate: string;
   eventDate: string;
+  budget: number;
+  transportPref: string;
+  hotelPref: string;
+  foodPref: string;
   itineraryData: Itinerary;
   createdAt: string;
   updatedAt: string;

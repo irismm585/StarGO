@@ -5,13 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
-import { fontSize, spacing } from '../../constants/layout';
+import { fontSize, spacing, borderRadius } from '../../constants/layout';
+import { useAuth } from '../../contexts/AuthContext';
+import { deleteItinerary, getItineraryById } from '../../services/itinerary';
 import Header from '../../components/common/Header';
 import Card from '../../components/common/Card';
+import Button from '../../components/common/Button';
 import ItineraryTimeline from '../../components/itinerary/ItineraryTimeline';
 import BudgetBreakdown from '../../components/itinerary/BudgetBreakdown';
 import type { ItineraryStackParamList } from '../../navigation/ItineraryStack';
@@ -19,10 +23,46 @@ import type { ItineraryStackParamList } from '../../navigation/ItineraryStack';
 type DetailRoute = RouteProp<ItineraryStackParamList, 'ItineraryDetail'>;
 
 export default function ItineraryDetailScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute<DetailRoute>();
-  const { itineraryData, title } = route.params;
+  const { itineraryData, savedId, title } = route.params;
   const data = itineraryData;
+  const { user } = useAuth();
+
+  const handleEdit = async () => {
+    if (!savedId) return;
+    try {
+      const saved = await getItineraryById(savedId);
+      if (saved) {
+        navigation.navigate('ItineraryCreate', { editData: saved });
+      }
+    } catch {
+      Alert.alert('错误', '无法加载行程数据');
+    }
+  };
+
+  const handleDelete = () => {
+    if (!savedId) return;
+    Alert.alert(
+      '删除行程',
+      '确定要删除此行程吗？此操作不可撤销。',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteItinerary(savedId);
+              navigation.goBack();
+            } catch {
+              Alert.alert('错误', '删除失败，请重试');
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -128,6 +168,26 @@ export default function ItineraryDetailScreen() {
             </Card>
           </View>
         )}
+
+        {/* Edit / Delete Actions */}
+        {savedId && (
+          <View style={styles.actionRow}>
+            <Button
+              title="编辑行程"
+              onPress={handleEdit}
+              variant="outline"
+              fullWidth={false}
+              style={styles.actionButton}
+            />
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.deleteButtonText}>删除行程</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -226,6 +286,30 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.text,
     lineHeight: 20,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  deleteButton: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.error,
+    backgroundColor: colors.surface,
+  },
+  deleteButtonText: {
+    color: colors.error,
+    fontSize: fontSize.md,
+    fontWeight: '700',
   },
   tipItem: {
     flexDirection: 'row',

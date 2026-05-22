@@ -5,6 +5,7 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
@@ -79,16 +80,27 @@ export default function ItineraryListScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <ItineraryCard
-              itinerary={item}
-              onPress={() =>
-                navigation.navigate('ItineraryDetail', {
-                  itineraryData: item.itineraryData,
-                  savedId: item.id,
-                  title: item.title,
-                })
-              }
-            />
+            <View style={styles.cardWrapper}>
+              <View style={styles.cardContent}>
+                <ItineraryCard
+                  itinerary={item}
+                  onPress={() =>
+                    navigation.navigate('ItineraryDetail', {
+                      itineraryData: item.itineraryData,
+                      savedId: item.id,
+                      title: item.title,
+                    })
+                  }
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => handleDelete(item.id, item.title)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.deleteBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
           )}
         />
       )}
@@ -99,4 +111,24 @@ export default function ItineraryListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.xl },
+  cardWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  cardContent: { flex: 1 },
+  deleteBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
+  },
+  deleteBtnText: {
+    fontSize: 18,
+    color: '#EF4444',
+    fontWeight: '700',
+  },
 });
