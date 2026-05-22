@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,10 @@ import Header from '../../components/common/Header';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
+import DatePicker from '../../components/common/DatePicker';
+import PickerSelect from '../../components/common/PickerSelect';
+import { getVenuesByCity } from '../../constants/venues';
+import { getCityPickerOptions } from '../../constants/cities';
 import type { ItineraryGenerationParams, Itinerary } from '../../types/itinerary';
 
 const TRAVEL_STYLES = ['经济型', '舒适型', '豪华型'] as const;
@@ -26,7 +30,11 @@ export default function ItineraryCreateScreen() {
 
   const [eventName, setEventName] = useState('');
   const [venueName, setVenueName] = useState('');
+  const [showCustomVenue, setShowCustomVenue] = useState(false);
+  const [departureCity, setDepartureCity] = useState('');
   const [city, setCity] = useState('');
+  const [showCustomCity, setShowCustomCity] = useState(false);
+  const [eventDate, setEventDate] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [budget, setBudget] = useState('');
@@ -39,6 +47,14 @@ export default function ItineraryCreateScreen() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const venueOptions = useMemo(() => {
+    const venues = getVenuesByCity(city.trim());
+    return [
+      { label: '自行输入...', value: '__custom__' },
+      ...venues.map((v) => ({ label: v, value: v })),
+    ];
+  }, [city]);
 
   const startTimer = () => {
     setElapsed(0);
@@ -56,10 +72,12 @@ export default function ItineraryCreateScreen() {
 
   const validate = (): boolean => {
     if (!eventName.trim()) { setError('请输入演出名称'); return false; }
-    if (!venueName.trim()) { setError('请输入场馆名称'); return false; }
-    if (!city.trim()) { setError('请输入城市'); return false; }
-    if (!startDate.trim()) { setError('请输入开始日期'); return false; }
-    if (!endDate.trim()) { setError('请输入结束日期'); return false; }
+    if (!venueName.trim()) { setError('请选择或输入场馆'); return false; }
+    if (!departureCity.trim()) { setError('请输入出发城市'); return false; }
+    if (!city.trim()) { setError('请选择目的地城市'); return false; }
+    if (!eventDate.trim()) { setError('请选择演出日期'); return false; }
+    if (!startDate.trim()) { setError('请选择开始日期'); return false; }
+    if (!endDate.trim()) { setError('请选择结束日期'); return false; }
     if (!budget.trim() || isNaN(Number(budget)) || Number(budget) <= 0) {
       setError('请输入有效预算'); return false;
     }
@@ -73,9 +91,11 @@ export default function ItineraryCreateScreen() {
     const params: ItineraryGenerationParams = {
       eventName: eventName.trim(),
       venueName: venueName.trim(),
+      departureCity: departureCity.trim(),
       city: city.trim(),
       startDate: startDate.trim(),
       endDate: endDate.trim(),
+      eventDate: eventDate.trim(),
       budget: Number(budget),
       transportPref: transportPref.trim() || '无特殊要求',
       hotelPref: hotelPref.trim() || '无特殊要求',
@@ -145,18 +165,77 @@ export default function ItineraryCreateScreen() {
               value={eventName}
               onChangeText={setEventName}
             />
-            <Input
+            <PickerSelect
               label="场馆"
-              placeholder="例：东京巨蛋"
-              value={venueName}
-              onChangeText={setVenueName}
+              options={venueOptions}
+              value={
+                showCustomVenue
+                  ? '__custom__'
+                  : venueOptions.some((o) => o.value === venueName)
+                    ? venueName
+                    : ''
+              }
+              onChange={(val) => {
+                if (val === '__custom__') {
+                  setShowCustomVenue(true);
+                  setVenueName('');
+                } else {
+                  setShowCustomVenue(false);
+                  setVenueName(val);
+                }
+              }}
+              placeholder={city.trim() ? '请选择场馆' : '请先输入目的地城市'}
             />
+            {showCustomVenue && (
+              <Input
+                label="自行输入场馆"
+                placeholder="输入场馆名称"
+                value={venueName}
+                onChangeText={setVenueName}
+              />
+            )}
             <Input
-              label="城市"
-              placeholder="例：东京"
-              value={city}
-              onChangeText={setCity}
+              label="出发城市"
+              placeholder="你从哪个城市出发？"
+              value={departureCity}
+              onChangeText={setDepartureCity}
             />
+            <PickerSelect
+              label="目的地城市"
+              options={getCityPickerOptions()}
+              value={
+                showCustomCity
+                  ? '__custom_city__'
+                  : getCityPickerOptions().some((o) => o.value === city)
+                    ? city
+                    : ''
+              }
+              onChange={(val) => {
+                if (val === '__custom_city__') {
+                  setShowCustomCity(true);
+                  setCity('');
+                  setVenueName('');
+                } else {
+                  setShowCustomCity(false);
+                  setCity(val);
+                }
+              }}
+              placeholder="选择目的地城市"
+            />
+            {showCustomCity && (
+              <Input
+                label="自行输入城市"
+                placeholder="输入城市名称"
+                value={city}
+                onChangeText={(t) => {
+                  setCity(t);
+                  const venues = getVenuesByCity(t.trim());
+                  if (!showCustomVenue && venueName && !venues.includes(venueName)) {
+                    setVenueName('');
+                  }
+                }}
+              />
+            )}
           </Card>
         </View>
 
@@ -164,19 +243,20 @@ export default function ItineraryCreateScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>日期</Text>
           <Card>
-            <Input
-              label="开始日期"
-              placeholder="YYYY-MM-DD"
-              value={startDate}
-              onChangeText={setStartDate}
-              autoCapitalize="none"
+            <DatePicker
+              label="演出日期"
+              value={eventDate}
+              onChange={setEventDate}
             />
-            <Input
-              label="结束日期"
-              placeholder="YYYY-MM-DD"
+            <DatePicker
+              label="出发日期"
+              value={startDate}
+              onChange={setStartDate}
+            />
+            <DatePicker
+              label="返程日期"
               value={endDate}
-              onChangeText={setEndDate}
-              autoCapitalize="none"
+              onChange={setEndDate}
             />
           </Card>
         </View>

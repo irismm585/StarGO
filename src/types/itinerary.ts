@@ -50,9 +50,11 @@ export interface Itinerary {
 export interface ItineraryGenerationParams {
   eventName: string;
   venueName: string;
+  departureCity: string;
   city: string;
   startDate: string;
   endDate: string;
+  eventDate: string;
   budget: number;
   transportPref: string;
   hotelPref: string;
@@ -64,10 +66,12 @@ export interface SavedItinerary {
   userId: string;
   title: string;
   eventName: string;
+  departureCity: string;
   city: string;
   venueName: string;
   startDate: string;
   endDate: string;
+  eventDate: string;
   itineraryData: Itinerary;
   createdAt: string;
   updatedAt: string;

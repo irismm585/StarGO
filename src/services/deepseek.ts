@@ -73,7 +73,9 @@ async function createChatCompletion(
 const ITINERARY_SYSTEM_PROMPT = `你是专业的「演出/赛事行程规划师」，擅长演唱会、音乐节、体育赛事的跨城行程。
 严格按 JSON 输出，不要任何解释、不要 markdown、不要多余文字。
 
-输入：用户的出行需求（城市、日期、演出名称、预算、交通偏好、住宿要求、美食偏好）
+输入：用户的出行需求（出发城市、目的地城市、演出日期、出行日期、预算、交通偏好、住宿要求、美食偏好）
+注意：演唱会日期可能和用户的抵达/离开日期不同。请确保演唱会当天的行程空出足够时间给演出，并在演出前安排进场时间。
+
 输出结构：
 {
   "overview": "行程总览（1句话，含天数、核心安排）",
@@ -111,8 +113,10 @@ export async function generateItinerary(
   const userPrompt = `请为以下演出行程生成完整规划：
 - 演出名称：${params.eventName}
 - 场馆：${params.venueName}
-- 城市：${params.city}
-- 日期：${params.startDate} 至 ${params.endDate}
+- 出发城市：${params.departureCity}
+- 目的地城市：${params.city}
+- 演出日期：${params.eventDate}
+- 出行日期：${params.startDate} 至 ${params.endDate}
 - 预算：${params.budget}元
 - 交通偏好：${params.transportPref}
 - 住宿要求：${params.hotelPref}
