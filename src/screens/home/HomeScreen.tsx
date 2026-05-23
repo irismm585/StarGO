@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -40,6 +41,9 @@ export default function HomeScreen() {
   useEffect(() => {
     setEvents(getEventsByCategory(activeCategory));
   }, [activeCategory]);
+
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const handleCategoryChange = (cat: EventCategory | 'all') => {
     setActiveCategory(cat);
@@ -226,7 +230,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -453,4 +458,5 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
-});
+  });
+}

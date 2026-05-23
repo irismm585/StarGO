@@ -33,3 +33,39 @@ export const colors = {
   overlay: 'rgba(45, 38, 64, 0.3)',
   cardShadow: 'rgba(149, 120, 200, 0.08)',  // Soft purple-tinted shadow
 };
+
+export const darkColors: typeof colors = {
+  // Main palette (brighter purple on dark bg for contrast)
+  primary: '#B8A0E0',
+  primaryLight: '#D4C4EC',
+  secondary: '#9578C8',
+  accent: '#6E6590',
+
+  // Gradients
+  gradientStart: '#B8A0E0',
+  gradientEnd: '#9578C8',
+
+  // Backgrounds — translucent black, not too dark
+  background: 'rgba(20, 16, 30, 0.85)',
+  surface: 'rgba(40, 34, 56, 0.7)',
+
+  // Text — lighter on dark
+  text: '#E8E4F0',
+  textSecondary: '#B8B0CC',
+  textMuted: '#8A80A0',
+
+  // Borders
+  border: 'rgba(255,255,255,0.08)',
+  borderLight: 'rgba(255,255,255,0.12)',
+
+  // Semantic
+  error: '#F87171',
+  success: '#34D399',
+  warning: '#FBBF24',
+  alert: '#F87171',
+  verified: '#B8A0E0',
+
+  // Effects
+  overlay: 'rgba(0, 0, 0, 0.5)',
+  cardShadow: 'rgba(0, 0, 0, 0.3)',
+};

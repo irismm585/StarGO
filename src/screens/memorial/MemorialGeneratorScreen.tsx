@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,11 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { generateContent } from '../../services/memorial';
 import { getSavedItineraries } from '../../services/itinerary';
 import Header from '../../components/common/Header';
@@ -30,6 +31,8 @@ export default function MemorialGeneratorScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const moods = [t.memorial.moodExcited, t.memorial.moodNostalgic, t.memorial.moodGrateful, t.memorial.moodEnergetic, t.memorial.moodBittersweet];
 
   const [eventName, setEventName] = useState('');
@@ -258,7 +261,8 @@ export default function MemorialGeneratorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxxl },
@@ -388,4 +392,5 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
   },
-});
+  });
+}

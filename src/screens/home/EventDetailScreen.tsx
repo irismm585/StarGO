@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useTranslation } from '../../contexts/LanguageContext';
 import Header from '../../components/common/Header';
@@ -29,6 +30,10 @@ export default function EventDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<EventDetailRoute>();
   const { t, language } = useTranslation();
+
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const event = localizeEvent(route.params.event, language);
 
   const handleAddToItinerary = () => {
@@ -173,7 +178,8 @@ export default function EventDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxxl },
@@ -271,4 +277,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
   },
-});
+  });
+}

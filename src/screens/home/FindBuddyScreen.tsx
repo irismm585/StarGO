@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   SectionList,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getAllBuddies,
@@ -44,8 +45,12 @@ type SectionData =
 
 export default function FindBuddyScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute();
   const { user } = useAuth();
   const { t, language } = useTranslation();
+
+  // When routed from ChatStack's FindBuddyFromChat, hide the posts section
+  const hidePosts = (route.params as { hidePosts?: boolean } | undefined)?.hidePosts ?? false;
 
   const [buddies, setBuddies] = useState<BuddyProfile[]>([]);
   const [posts, setPosts] = useState<BuddyPost[]>([]);
@@ -55,6 +60,9 @@ export default function FindBuddyScreen() {
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
   const [purposeFilter, setPurposeFilter] = useState<BuddyPurpose[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -95,19 +103,22 @@ export default function FindBuddyScreen() {
   const discoverBuddies = filteredBuddies.filter((b) => !b.isFriend);
 
   const sections: { title: string; data: SectionData[] }[] = [
-    // Posts section
-    {
-      title: t.findBuddy.buddyPosts,
-      data: posts.length > 0
-        ? posts.map((p) => ({ type: 'post' as const, post: p }))
-        : [{ type: 'header' as const, title: t.findBuddy.noPosts }],
-    },
-    // Buddies section
+    // Buddies section (always shown)
     {
       title: t.findBuddy.discoverBuddies,
       data: discoverBuddies.map((b) => ({ type: 'buddy' as const, buddy: b })),
     },
   ];
+
+  // Posts section — only shown when hidePosts is false (HomeStack)
+  if (!hidePosts) {
+    sections.unshift({
+      title: t.findBuddy.buddyPosts,
+      data: posts.length > 0
+        ? posts.map((p) => ({ type: 'post' as const, post: p }))
+        : [{ type: 'header' as const, title: t.findBuddy.noPosts }],
+    });
+  }
 
   if (myBuddies.length > 0) {
     sections.unshift({
@@ -137,8 +148,18 @@ export default function FindBuddyScreen() {
     );
   };
 
+  const handlePostContact = (post: BuddyPost) => {
+    navigation.navigate('ChatTab', {
+      screen: 'ChatRoom',
+      params: {
+        roomId: `post_${user?.id}_${post.userId}`,
+        roomName: post.displayName,
+      },
+    });
+  };
+
   const handleCreatePost = () => {
-    navigation.navigate('CreateBuddyPost');
+    navigation.navigate('HomeTab', { screen: 'CreateBuddyPost' });
   };
 
   const renderPostCard = (post: BuddyPost) => {
@@ -163,7 +184,7 @@ export default function FindBuddyScreen() {
               🎫 {post.eventName}
             </Text>
           </View>
-          <TouchableOpacity style={styles.contactBtn}>
+          <TouchableOpacity style={styles.contactBtn} onPress={() => handlePostContact(post)} activeOpacity={0.7}>
             <Text style={styles.contactBtnText}>{t.findBuddy.contact}</Text>
           </TouchableOpacity>
         </View>
@@ -404,7 +425,8 @@ export default function FindBuddyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: fontSize.md, color: colors.textSecondary },
@@ -750,4 +772,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-});
+    });
+  }

@@ -19,7 +19,6 @@ export const SCALPER_KEYWORDS: string[] = [
   'negotiate',
   'best offer',
   'ticketmaster transfer',
-  'pdf ticket',
   'screenshot ticket',
   '转票',
   '出票',

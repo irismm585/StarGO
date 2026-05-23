@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -28,6 +29,9 @@ export default function EventChatAuthScreen() {
   const { user } = useAuth();
   const event = localizeEvent(route.params.event, language);
   const [verifying, setVerifying] = useState(false);
+
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const handleVerify = async () => {
     if (!user) return;
@@ -139,7 +143,8 @@ export default function EventChatAuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: {
     flex: 1,
@@ -279,4 +284,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-});
+  });
+}

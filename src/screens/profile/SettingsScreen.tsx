@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,9 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme, useColors } from '../../contexts/ThemeContext';
 import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 import { useTranslation } from '../../contexts/LanguageContext';
@@ -18,7 +17,10 @@ import { useTranslation } from '../../contexts/LanguageContext';
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isDark, toggle } = useTheme();
+  const colors = useColors();
   const { t } = useTranslation();
+
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const handleLogout = () => {
     Alert.alert(t.profile.logout, t.profile.logoutConfirm, [
@@ -96,7 +98,8 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof import('../../constants/colors').colors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollContent: { padding: spacing.xl, paddingBottom: spacing.xxxl },
   sectionTitle: {
@@ -141,3 +144,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxxl,
   },
 });
+}

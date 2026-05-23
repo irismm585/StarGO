@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { createBuddyPost } from '../../services/buddy';
 import Header from '../../components/common/Header';
 import Input from '../../components/common/Input';
@@ -31,6 +32,7 @@ export default function CreateBuddyPostScreen() {
   const route = useRoute<CreatePostRoute>();
   const { user } = useAuth();
   const { t, language } = useTranslation();
+  const colors = useColors();
   const prefill = route.params?.prefill;
 
   const [eventName, setEventName] = useState(prefill?.eventName ?? '');
@@ -42,6 +44,8 @@ export default function CreateBuddyPostScreen() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const togglePurpose = (p: BuddyPurpose) => {
     setSelectedPurposes((prev) =>
       prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
@@ -49,13 +53,17 @@ export default function CreateBuddyPostScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
-    if (!eventName.trim()) { Alert.alert(t.common.loading, language === 'zh' ? '请输入活动名称' : 'Enter event name'); return; }
-    if (!city.trim()) { Alert.alert(t.common.loading, language === 'zh' ? '请输入城市' : 'Enter city'); return; }
-    if (selectedPurposes.length === 0) { Alert.alert(t.common.loading, language === 'zh' ? '请选择至少一个出行目的' : 'Select at least one purpose'); return; }
+    if (!user) {
+      Alert.alert(language === 'zh' ? '请先登录' : 'Please log in', language === 'zh' ? '需要登录后才能发布找搭子' : 'You need to log in to post a buddy request');
+      return;
+    }
+    if (!eventName.trim()) { Alert.alert(language === 'zh' ? '提示' : 'Notice', language === 'zh' ? '请输入活动名称' : 'Enter event name'); return; }
+    if (!city.trim()) { Alert.alert(language === 'zh' ? '提示' : 'Notice', language === 'zh' ? '请输入城市' : 'Enter city'); return; }
+    if (selectedPurposes.length === 0) { Alert.alert(language === 'zh' ? '提示' : 'Notice', language === 'zh' ? '请选择至少一个出行目的' : 'Select at least one purpose'); return; }
 
     setSubmitting(true);
     try {
+      console.log('Creating buddy post with user:', user.id, user.username);
       await createBuddyPost({
         userId: user.id,
         username: user.username,
@@ -68,13 +76,18 @@ export default function CreateBuddyPostScreen() {
         genderPreference: genderPref,
         description: description.trim(),
       });
-      Alert.alert(
-        language === 'zh' ? '发布成功' : 'Posted',
-        language === 'zh' ? '找搭子帖子已发布！' : 'Your buddy post is live!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-      );
-    } catch {
-      Alert.alert(t.common.loading, language === 'zh' ? '发布失败，请重试' : 'Failed to post, try again');
+      console.log('Buddy post created successfully');
+      // Navigate to BuddyPosts via parent Tab navigator
+      const parentNav = navigation.getParent();
+      if (parentNav) {
+        parentNav.navigate('ChatTab', { screen: 'BuddyPosts' });
+      } else {
+        // Fallback: direct navigation from stack
+        (navigation as any).navigate('ChatTab', { screen: 'BuddyPosts' });
+      }
+    } catch (e) {
+      console.error('Failed to create buddy post:', e);
+      Alert.alert(language === 'zh' ? '发布失败' : 'Failed', language === 'zh' ? '发布失败，请重试：' + String(e) : 'Failed to post: ' + String(e));
     } finally {
       setSubmitting(false);
     }
@@ -203,7 +216,8 @@ export default function CreateBuddyPostScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxxl },
@@ -278,3 +292,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 });
+}

@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { colors } from '../constants/colors';
+import { colors as colorsLight } from '../constants/colors';
 import { borderRadius } from '../constants/layout';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useColors } from '../contexts/ThemeContext';
 import HomeStack from './HomeStack';
 import ItineraryStack from './ItineraryStack';
 import ChatStack from './ChatStack';
@@ -22,6 +23,7 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 function MainTabsContent() {
   const { t } = useTranslation();
+  const colors = useColors();
 
   return (
     <Tab.Navigator

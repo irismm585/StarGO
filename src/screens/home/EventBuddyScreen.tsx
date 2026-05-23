@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
+import { useColors } from '../../contexts/ThemeContext';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,6 +49,9 @@ export default function EventBuddyScreen() {
       }
     })();
   }, [user]);
+
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   // Dynamic match based on event context + interests overlap
   const matchingBuddies = allBuddies
@@ -192,7 +196,8 @@ export default function EventBuddyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.xl, paddingBottom: spacing.xxxl },
 
@@ -343,4 +348,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-});
+  });
+}

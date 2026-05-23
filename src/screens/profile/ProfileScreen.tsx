@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius, shadow } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { getSavedItineraries } from '../../services/itinerary';
 import { getSavedMemorials } from '../../services/memorial';
 import { getFriendBuddies } from '../../services/buddy';
@@ -20,6 +21,8 @@ export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [tripCount, setTripCount] = useState(0);
   const [memorialCount, setMemorialCount] = useState(0);
@@ -135,7 +138,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     paddingTop: 60,
@@ -239,4 +243,5 @@ const styles = StyleSheet.create({
   settingsIcon: { fontSize: 20, marginRight: spacing.md },
   settingsText: { flex: 1, fontSize: fontSize.md, color: colors.text },
   settingsArrow: { fontSize: 24, color: colors.textMuted },
-});
+  });
+}

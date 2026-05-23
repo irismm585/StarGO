@@ -37,28 +37,75 @@ export async function getDiscoverBuddies(): Promise<BuddyProfile[]> {
 
 // ── Dynamic Match Calculation ──
 
+/**
+ * Purpose rarity weights — having a rare/niche purpose adds value
+ * because it signals deeper engagement in specific activities.
+ */
+const PURPOSE_RARITY: Record<string, number> = {
+  share_hotel: 4,    // 3/8 buddies
+  share_ride: 4,     // 3/8
+  queue_together: 3, // 4/8 — more common
+  meal_buddy: 8,     // 0/8 — rarest
+  photo_help: 5,     // 3/8
+  look_out: 5,       // 3/8
+  chat_experience: 2,// 4/8 — most common, lowest value
+};
+
 export function calculateMatchPercentage(
   buddy: BuddyProfile,
   filter: BuddyFilter,
 ): number {
-  let score = 50; // base
+  let score = 0;
 
-  // Same city
-  if (filter.city && buddy.city.includes(filter.city)) score += 15;
+  // ─── Profile-based base score (0-70 pts) ───
+  // This ensures differentiation even without active filters
 
-  // Purpose overlap
-  if (filter.purpose.length > 0) {
-    const overlap = buddy.purpose.filter((p) => filter.purpose.includes(p)).length;
-    score += Math.min(overlap * 8, 20);
+  // 1. Purpose diversity & rarity (0-30 pts)
+  // More purposes = more flexibility. Rare purposes = more valuable.
+  const rarityScore = buddy.purpose.reduce(
+    (sum, p) => sum + (PURPOSE_RARITY[p] || 3),
+    0,
+  );
+  // Normalize: 2 common purposes = ~4-6, 3 diverse purposes = ~12-17
+  // Scale to max 30
+  score += Math.min(Math.round(rarityScore * 1.8), 30);
+
+  // 2. Interest breadth (0-18 pts)
+  // More interests = higher chance of common ground
+  score += Math.min(buddy.interests.length * 6, 18);
+
+  // 3. Travel style flexibility (0-12 pts)
+  score += Math.min(buddy.travelStyle.length * 5, 12);
+
+  // 4. Bio quality (0-10 pts)
+  // Detailed bios indicate more engaging companions
+  if (buddy.bio) {
+    const bioLen = buddy.bio.length;
+    if (bioLen >= 18) score += 10;
+    else if (bioLen >= 10) score += 6;
+    else score += 3;
   }
 
-  // Same interests (use Chinese fields as reference)
-  if (buddy.interests.length > 0) score += 5;
+  // ─── Filter bonus (0-30 pts) ───
+  // These are conditional on the user actively filtering
 
-  // Same gender preference
-  if (filter.gender !== 'all' && buddy.gender === filter.gender) score += 5;
+  // 5. Same city (0-12 pts)
+  if (filter.city && buddy.city.includes(filter.city)) {
+    score += 12;
+  }
 
-  return Math.min(Math.max(score, 0), 99);
+  // 6. Purpose alignment with filter (0-10 pts)
+  if (filter.purpose.length > 0) {
+    const overlap = buddy.purpose.filter((p) => filter.purpose.includes(p)).length;
+    score += Math.min(overlap * 5, 10);
+  }
+
+  // 7. Gender preference match (0-8 pts)
+  if (filter.gender !== 'all' && buddy.gender === filter.gender) {
+    score += 8;
+  }
+
+  return Math.min(Math.max(Math.round(score), 1), 99);
 }
 
 // ── Filters ──

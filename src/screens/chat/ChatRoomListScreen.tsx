@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,38 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { getChatRooms, joinRoom, leaveRoom } from '../../services/chat';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
 import { localizeRoom } from '../../utils/localization';
 import type { ChatRoom } from '../../types/chat';
+import type { ChatStackParamList } from '../../navigation/ChatStack';
 
-type CommunityTab = 'rooms' | 'buddies';
+type CommunityTab = 'rooms' | 'buddies' | 'posts';
 
 export default function ChatRoomListScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<ChatStackParamList, 'ChatRoomList'>>();
   const { user } = useAuth();
   const { t, language } = useTranslation();
+  const colors = useColors();
 
-  const [activeTab, setActiveTab] = useState<CommunityTab>('rooms');
+  const [activeTab, setActiveTab] = useState<CommunityTab>(
+    route.params?.initialTab ?? 'rooms',
+  );
 
   // Room state
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
+
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   // Load rooms
   const loadRooms = useCallback(async () => {
@@ -46,8 +54,11 @@ export default function ChatRoomListScreen() {
 
   const handleTabChange = (tab: CommunityTab) => {
     if (tab === 'buddies') {
-      // Navigate to FindBuddyScreen (shared with Home)
-      navigation.navigate('FindBuddyFromChat');
+      navigation.navigate('FindBuddyFromChat', { hidePosts: true });
+      return;
+    }
+    if (tab === 'posts') {
+      navigation.navigate('BuddyPosts');
       return;
     }
     setActiveTab(tab);
@@ -192,6 +203,15 @@ export default function ChatRoomListScreen() {
             {t.community.discoverBuddies}
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+          onPress={() => handleTabChange('posts')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
+            {language === 'zh' ? '发现帖子' : 'Buddy Posts'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -209,7 +229,8 @@ export default function ChatRoomListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.xl, paddingBottom: spacing.xxxl },
 
@@ -265,7 +286,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: '#9578C8',
+    shadowColor: colors.cardShadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 20,
@@ -376,3 +397,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+}

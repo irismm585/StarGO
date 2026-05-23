@@ -8,9 +8,10 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { generateItinerary, saveItinerary, updateItinerary } from '../../services/itinerary';
 import Header from '../../components/common/Header';
@@ -31,6 +32,8 @@ export default function ItineraryCreateScreen() {
   const route = useRoute<CreateRoute>();
   const { user } = useAuth();
   const { t, language } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const editData = route.params?.editData ?? null;
   const prefill = route.params?.prefill ?? null;
@@ -449,7 +452,8 @@ export default function ItineraryCreateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxxl },
@@ -528,3 +532,4 @@ const styles = StyleSheet.create({
     minWidth: 140,
   },
 });
+}

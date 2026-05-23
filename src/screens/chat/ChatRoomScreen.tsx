@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRoute, RouteProp, useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { getMessages, sendMessage } from '../../services/chat';
 import { getSavedItineraries, getItineraryById } from '../../services/itinerary';
 import Header from '../../components/common/Header';
@@ -28,6 +29,8 @@ export default function ChatRoomScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { t, language } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { roomId, roomName, isEventRoom } = route.params;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -192,7 +195,8 @@ export default function ChatRoomScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   messageList: { flex: 1 },
   verifiedStrip: {
@@ -243,4 +247,5 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
-});
+  });
+}

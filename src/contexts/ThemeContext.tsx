@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
+import { colors, darkColors } from '../constants/colors';
 import { storage } from '../services/storage';
 import { STORAGE_KEYS } from '../config';
 
@@ -40,4 +41,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   return useContext(ThemeContext);
+}
+
+const cachedColors = { ...colors };
+const cachedDarkColors = { ...darkColors };
+
+export function useColors() {
+  const { isDark } = useTheme();
+  return isDark ? cachedDarkColors : cachedColors;
 }

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Share, TouchableOpacity } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveMemorial } from '../../services/memorial';
@@ -10,6 +10,7 @@ import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import ContentPreview from '../../components/memorial/ContentPreview';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import type { MemorialStackParamList } from '../../navigation/MemorialStack';
 
 type PreviewRoute = RouteProp<MemorialStackParamList, 'MemorialPreview'>;
@@ -19,6 +20,8 @@ export default function MemorialPreviewScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { content, contentEn } = route.params;
   const [memorialLang, setMemorialLang] = useState<'zh' | 'en'>('zh');
 
@@ -145,7 +148,8 @@ export default function MemorialPreviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxxl },
@@ -203,4 +207,5 @@ const styles = StyleSheet.create({
   actionBtn: {
     marginBottom: 0,
   },
-});
+  });
+}

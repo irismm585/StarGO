@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useColors } from '../../contexts/ThemeContext';
 import { getSavedMemorials, deleteMemorial } from '../../services/memorial';
 import Header from '../../components/common/Header';
 import Card from '../../components/common/Card';
@@ -24,6 +25,8 @@ export default function MemorialListScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [memorials, setMemorials] = useState<SavedMemorial[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +129,8 @@ export default function MemorialListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.xl },
   createButton: {
@@ -172,4 +176,5 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontWeight: '700',
   },
-});
+  });
+}
