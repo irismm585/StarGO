@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../constants/colors';
 import { borderRadius, fontSize, spacing, shadow } from '../../constants/layout';
 import { formatDateRange } from '../../utils/formatters';
 import type { SavedItinerary } from '../../types/itinerary';
@@ -16,7 +15,7 @@ export default function ItineraryCard({ itinerary, onPress }: ItineraryCardProps
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <View style={styles.card}>
         <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
+          colors={['#9578C8', '#7E5FA8']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.accent}
@@ -47,7 +46,7 @@ export default function ItineraryCard({ itinerary, onPress }: ItineraryCardProps
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(30, 24, 44, 0.85)',
     borderRadius: borderRadius.lg,
     flexDirection: 'row',
     overflow: 'hidden',
@@ -64,7 +63,7 @@ const styles = StyleSheet.create({
   eventName: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: colors.text,
+    color: '#E8E4F0',
     marginBottom: spacing.sm,
   },
   tags: {
@@ -73,23 +72,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   tag: {
-    backgroundColor: `${colors.primary}10`,
+    backgroundColor: 'rgba(149, 120, 200, 0.2)',
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
   },
   tagText: {
     fontSize: fontSize.xs,
-    color: colors.primary,
+    color: '#B8A0E0',
     fontWeight: '600',
   },
   date: {
     fontSize: fontSize.sm,
-    color: colors.textSecondary,
+    color: '#B8B0CC',
     marginBottom: spacing.xs,
   },
   title: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
+    color: '#B8B0CC',
   },
 });

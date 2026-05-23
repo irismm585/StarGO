@@ -332,9 +332,7 @@ function makeStyles(colors: typeof colorsLight) {
   },
   categoryContainer: {
     paddingVertical: spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: 'rgba(20, 16, 30, 0.92)',
     marginBottom: spacing.md,
   },
   categoryScroll: {
@@ -345,23 +343,15 @@ function makeStyles(colors: typeof colorsLight) {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   categoryTabActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
   },
   categoryText: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#C8C0D8',
   },
   categoryTextActive: {
     color: '#FFFFFF',
