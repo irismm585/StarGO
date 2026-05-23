@@ -189,26 +189,26 @@ export default function HomeScreen() {
             </View>
 
             {/* Category Tabs */}
-            <View style={styles.categoryContainer}>
+            <View style={darkCategoryStyles.categoryContainer}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryScroll}
+                contentContainerStyle={darkCategoryStyles.categoryScroll}
               >
                 {(['all', ...CATEGORIES.map((c) => c.key)] as const).map((cat) => (
                   <TouchableOpacity
                     key={cat}
                     style={[
-                      styles.categoryTab,
-                      activeCategory === cat && styles.categoryTabActive,
+                      darkCategoryStyles.categoryTab,
+                      activeCategory === cat && darkCategoryStyles.categoryTabActive,
                     ]}
                     onPress={() => handleCategoryChange(cat)}
                     activeOpacity={0.7}
                   >
                     <Text
                       style={[
-                        styles.categoryText,
-                        activeCategory === cat && styles.categoryTextActive,
+                        darkCategoryStyles.categoryText,
+                        activeCategory === cat && darkCategoryStyles.categoryTextActive,
                       ]}
                     >
                       {getCategoryLabel(cat)}
@@ -330,32 +330,8 @@ function makeStyles(colors: typeof colorsLight) {
     color: colors.text,
     textAlign: 'center',
   },
-  categoryContainer: {
-    paddingVertical: spacing.md,
-    backgroundColor: 'rgba(20, 16, 30, 0.92)',
-    marginBottom: spacing.md,
-  },
-  categoryScroll: {
-    paddingHorizontal: spacing.xl,
-    gap: spacing.sm,
-  },
-  categoryTab: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  categoryTabActive: {
-    backgroundColor: colors.primary,
-  },
-  categoryText: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    color: '#C8C0D8',
-  },
-  categoryTextActive: {
-    color: '#FFFFFF',
-  },
+  // NOTE: categoryContainer, categoryScroll, categoryTab, categoryTabActive,
+  // categoryText, categoryTextActive are defined in darkCategoryStyles below
   listContent: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.xxl + 40,
@@ -450,3 +426,33 @@ function makeStyles(colors: typeof colorsLight) {
   },
   });
 }
+
+// Always-dark styles for the category tab bar (not theme-dependent)
+export const darkCategoryStyles = StyleSheet.create({
+  categoryContainer: {
+    paddingVertical: spacing.md,
+    backgroundColor: 'rgb(20, 16, 30)',
+    marginBottom: spacing.md,
+  },
+  categoryScroll: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  categoryTab: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  categoryTabActive: {
+    backgroundColor: '#9578C8',
+  },
+  categoryText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: '#C8C0D8',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+});
