@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { getSavedItineraries } from '../../services/itinerary';
 import { getSavedMemorials } from '../../services/memorial';
+import { getFriendBuddies } from '../../services/buddy';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
@@ -22,6 +23,7 @@ export default function ProfileScreen() {
 
   const [tripCount, setTripCount] = useState(0);
   const [memorialCount, setMemorialCount] = useState(0);
+  const [buddyCount, setBuddyCount] = useState(0);
 
   const loadStats = useCallback(async () => {
     if (!user) return;
@@ -30,6 +32,8 @@ export default function ProfileScreen() {
       setTripCount(trips.length);
       const memorials = await getSavedMemorials(user.id);
       setMemorialCount(memorials.length);
+      const buddies = await getFriendBuddies();
+      setBuddyCount(buddies.length);
     } catch (e) {
       console.error(e);
     }
@@ -70,7 +74,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('ChatTab')}>
-          <Text style={styles.statValue}>--</Text>
+          <Text style={styles.statValue}>{buddyCount}</Text>
           <Text style={styles.statLabel}>{t.profile.statCommunity}</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />

@@ -36,7 +36,7 @@ export function localizeBuddy(
     name: buddy.nameEn ?? buddy.name,
     city: buddy.cityEn ?? buddy.city,
     interests: buddy.interestsEn ?? buddy.interests,
-    purpose: buddy.purposeEn ?? buddy.purpose,
+    // Purpose uses utility function getPurposeLabel() instead of string[] localization
     travelStyle: buddy.travelStyleEn ?? buddy.travelStyle,
     bio: buddy.bioEn ?? buddy.bio,
   };

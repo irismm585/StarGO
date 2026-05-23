@@ -11,26 +11,19 @@ import { colors } from '../../constants/colors';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAllBuddies, sendFriendRequest } from '../../services/buddy';
+import { getAllBuddies, sendFriendRequest, calculateMatchPercentage } from '../../services/buddy';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { localizeBuddy, localizeEvent } from '../../utils/localization';
+import {
+  getPurposeLabel,
+  getPurposeIcon,
+  type BuddyProfile,
+  type BuddyPurpose,
+} from '../../types/buddy';
 import type { HomeStackParamList } from '../../navigation/HomeStack';
-import type { BuddyProfile } from '../../types/buddy';
 
 type EventBuddyRoute = RouteProp<HomeStackParamList, 'EventBuddy'>;
-
-/** Check if a buddy's interests overlap with the event */
-function matchesEvent(buddy: BuddyProfile, artistName: string, category: string): boolean {
-  const keywords = [artistName.toLowerCase(), category.toLowerCase()];
-  const allInterests = [
-    ...(buddy.interests ?? []).map((i) => i.toLowerCase()),
-    ...(buddy.interestsEn ?? []).map((i) => i.toLowerCase()),
-  ];
-  return keywords.some((kw) =>
-    allInterests.some((interest) => interest.includes(kw) || kw.includes(interest))
-  );
-}
 
 export default function EventBuddyScreen() {
   const navigation = useNavigation<any>();
@@ -56,12 +49,30 @@ export default function EventBuddyScreen() {
     })();
   }, [user]);
 
-  // Filter buddies: high match + interest overlap
-  const matchingBuddies = allBuddies.filter((b) => {
-    if (b.isFriend || b.friendRequestStatus === 'pending') return false;
-    if (b.matchPercentage < 75) return false;
-    return matchesEvent(b, event.artistName, event.category);
-  }).sort((a, b) => b.matchPercentage - a.matchPercentage);
+  // Dynamic match based on event context + interests overlap
+  const matchingBuddies = allBuddies
+    .filter((b) => {
+      if (b.isFriend || b.friendRequestStatus === 'pending') return false;
+      // Must have some interest overlap with the event's artist/category
+      const keywords = [event.artistName.toLowerCase(), event.category.toLowerCase()];
+      const allInterests = [
+        ...(b.interests ?? []).map((i) => i.toLowerCase()),
+        ...(b.interestsEn ?? []).map((i) => i.toLowerCase()),
+      ];
+      const hasOverlap = keywords.some((kw) =>
+        allInterests.some((interest) => interest.includes(kw) || kw.includes(interest))
+      );
+      return hasOverlap;
+    })
+    .map((b) => ({
+      ...b,
+      matchPercentage: calculateMatchPercentage(b, {
+        gender: 'all',
+        purpose: [],
+        city: event.city,
+      }),
+    }))
+    .sort((a, b) => b.matchPercentage - a.matchPercentage);
 
   const handleAdd = async (buddyId: string) => {
     if (!user) return;
@@ -70,8 +81,8 @@ export default function EventBuddyScreen() {
       await sendFriendRequest(user.id, buddyId);
       setAllBuddies((prev) =>
         prev.map((b) =>
-          b.id === buddyId ? { ...b, friendRequestStatus: 'pending' as const } : b
-        )
+          b.id === buddyId ? { ...b, friendRequestStatus: 'pending' as const } : b,
+        ),
       );
     } catch {
       // ignore
@@ -88,9 +99,9 @@ export default function EventBuddyScreen() {
     const localized = localizeBuddy(item, language);
 
     const matchColor =
-      item.matchPercentage >= 90 ? colors.success
-        : item.matchPercentage >= 80 ? colors.primary
-        : colors.warning;
+      item.matchPercentage >= 80 ? colors.success
+        : item.matchPercentage >= 60 ? colors.primary
+        : colors.textMuted;
 
     return (
       <View style={styles.card}>
@@ -103,7 +114,7 @@ export default function EventBuddyScreen() {
               <Text style={styles.name}>{localized.name}</Text>
               <View style={[styles.matchBadge, { backgroundColor: matchColor + '18', borderColor: matchColor + '40' }]}>
                 <Text style={[styles.matchText, { color: matchColor }]}>
-                  {item.matchPercentage}% {t.community.match}
+                  {item.matchPercentage}% {t.findBuddy.match}
                 </Text>
               </View>
             </View>
@@ -111,25 +122,14 @@ export default function EventBuddyScreen() {
           </View>
         </View>
 
-        {/* Interests */}
-        <View style={styles.tagRow}>
-          {localized.interests.map((interest, idx) => (
-            <View key={idx} style={styles.interestBadge}>
-              <Text style={styles.interestText}>{interest}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Purpose + Travel Style */}
-        <View style={styles.tagRow}>
-          {localized.purpose.map((p, idx) => (
+        {/* Purpose badges with icons */}
+        <View style={styles.purposeRow}>
+          {item.purpose.map((p, idx) => (
             <View key={idx} style={styles.purposeBadge}>
-              <Text style={styles.purposeText}>{p}</Text>
-            </View>
-          ))}
-          {localized.travelStyle.map((s, idx) => (
-            <View key={idx} style={styles.styleBadge}>
-              <Text style={styles.styleText}>{s}</Text>
+              <Text style={styles.purposeIcon}>{getPurposeIcon(p)}</Text>
+              <Text style={styles.purposeText}>
+                {getPurposeLabel(p, language)}
+              </Text>
             </View>
           ))}
         </View>
@@ -157,11 +157,7 @@ export default function EventBuddyScreen() {
 
   return (
     <View style={styles.container}>
-      <Header
-        title={language === 'zh' ? '发现搭子' : 'Find Buddies'}
-        showBack
-        onBack={() => navigation.navigate('ChatTab', { screen: 'FindBuddyFromChat' })}
-      />
+      <Header title={language === 'zh' ? '发现搭子' : 'Find Buddies'} showBack />
 
       {/* Event info strip */}
       <View style={styles.eventStrip}>
@@ -184,7 +180,9 @@ export default function EventBuddyScreen() {
                 {language === 'zh' ? '暂无匹配搭子' : 'No matching buddies'}
               </Text>
               <Text style={styles.emptyDesc}>
-                {language === 'zh' ? '其他用户可能还未添加该演出相关兴趣' : 'Other users may not have added interests for this event yet'}
+                {language === 'zh'
+                  ? '其他用户可能还未添加该演出相关兴趣'
+                  : 'Other users may not have added interests for this event yet'}
               </Text>
             </View>
           }
@@ -277,48 +275,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Tags
-  tagRow: {
+  // Purpose badges
+  purposeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  interestBadge: {
-    backgroundColor: `${colors.primary}12`,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: borderRadius.sm,
-  },
-  interestText: {
-    fontSize: fontSize.xs,
-    color: colors.primary,
-    fontWeight: '600',
+    marginBottom: spacing.md,
   },
   purposeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.accent + '20',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: borderRadius.sm,
     borderWidth: 1,
     borderColor: colors.accent + '30',
+    gap: 2,
   },
+  purposeIcon: { fontSize: 12 },
   purposeText: {
-    fontSize: fontSize.xs,
+    fontSize: 10,
     color: '#4C1D95',
-    fontWeight: '600',
-  },
-  styleBadge: {
-    backgroundColor: colors.verified + '18',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.verified + '30',
-  },
-  styleText: {
-    fontSize: fontSize.xs,
-    color: colors.verified,
     fontWeight: '600',
   },
 

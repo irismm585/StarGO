@@ -9,7 +9,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'female',
     age: 24,
     interests: ['Taylor Swift', 'K-pop', '摄影'],
-    purpose: ['拼房', '一起排队', '互相照应'],
+    purpose: ['share_hotel', 'queue_together', 'look_out'],
     travelStyle: ['舒适型', '打卡型'],
     matchPercentage: 92,
     isFriend: false,
@@ -19,7 +19,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     interestsEn: ['Taylor Swift', 'K-pop', 'Photography'],
     purposeEn: ['Share hotel', 'Queue together', 'Look out for each other'],
     travelStyleEn: ['Comfortable', 'Check-in style'],
-    bioEn: 'Been a fan for 10 years, let\'s go to concerts together~',
+    bioEn: "Been a fan for 10 years, let's go to concerts together~",
   },
   {
     id: 'buddy_02',
@@ -29,7 +29,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'male',
     age: 27,
     interests: ['周杰伦', '话剧', '桌游'],
-    purpose: ['拼车', '交流心得'],
+    purpose: ['share_ride', 'chat_experience'],
     travelStyle: ['经济型', '深度体验'],
     matchPercentage: 85,
     isFriend: false,
@@ -49,7 +49,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'male',
     age: 26,
     interests: ['摇滚', '音乐节', '露营'],
-    purpose: ['拼房', '拼车', '拍照互助'],
+    purpose: ['share_hotel', 'share_ride', 'photo_help'],
     travelStyle: ['特种兵', '经济型'],
     matchPercentage: 78,
     isFriend: false,
@@ -59,7 +59,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     interestsEn: ['Rock', 'Music Festival', 'Camping'],
     purposeEn: ['Share hotel', 'Share ride', 'Photo help'],
     travelStyleEn: ['Intensive', 'Budget-friendly'],
-    bioEn: 'Guitarist, regular at music festivals',
+    bioEn: "Guitarist, regular at music festivals",
   },
   {
     id: 'buddy_04',
@@ -69,7 +69,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'female',
     age: 23,
     interests: ['脱口秀', '美食', '旅行'],
-    purpose: ['一起排队', '拍照互助', '交流心得'],
+    purpose: ['queue_together', 'photo_help', 'chat_experience'],
     travelStyle: ['舒适型', '深度体验'],
     matchPercentage: 88,
     isFriend: false,
@@ -89,7 +89,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'female',
     age: 25,
     interests: ['话剧', '音乐剧', '舞蹈'],
-    purpose: ['互相照应', '交流心得'],
+    purpose: ['look_out', 'chat_experience'],
     travelStyle: ['佛系', '深度体验'],
     matchPercentage: 96,
     isFriend: false,
@@ -109,7 +109,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'male',
     age: 28,
     interests: ['体育赛事', '电竞', '健身'],
-    purpose: ['拼车', '一起排队'],
+    purpose: ['share_ride', 'queue_together'],
     travelStyle: ['经济型', '特种兵'],
     matchPercentage: 72,
     isFriend: false,
@@ -129,17 +129,17 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'female',
     age: 22,
     interests: ['陈奕迅', '粤语歌', '甜品'],
-    purpose: ['拼房', '互相照应', '拍照互助'],
+    purpose: ['share_hotel', 'look_out', 'photo_help'],
     travelStyle: ['舒适型', '打卡型'],
     matchPercentage: 90,
     isFriend: false,
     bio: '广东歌爱好者，红馆常客',
-    nameEn: 'Zhao Xue\'er',
+    nameEn: "Zhao Xue'er",
     cityEn: 'Hong Kong',
     interestsEn: ['Eason Chan', 'Cantopop', 'Desserts'],
     purposeEn: ['Share hotel', 'Look out for each other', 'Photo help'],
     travelStyleEn: ['Comfortable', 'Check-in style'],
-    bioEn: 'Cantonese music lover, regular at Hong Kong Coliseum',
+    bioEn: "Cantonese music lover, regular at Hong Kong Coliseum",
   },
   {
     id: 'buddy_08',
@@ -149,7 +149,7 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     gender: 'male',
     age: 29,
     interests: ['古典乐', '爵士', '咖啡'],
-    purpose: ['交流心得', '一起排队'],
+    purpose: ['chat_experience', 'queue_together'],
     travelStyle: ['佛系', '深度体验'],
     matchPercentage: 82,
     isFriend: false,
@@ -160,5 +160,62 @@ export const MOCK_BUDDIES: BuddyProfile[] = [
     purposeEn: ['Share experiences', 'Queue together'],
     travelStyleEn: ['Chill', 'Deep experience'],
     bioEn: 'Piano teacher, interested in all kinds of performances',
+  },
+];
+
+export const MOCK_BUDDY_POSTS: {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  eventName: string;
+  eventDate: string;
+  city: string;
+  venueName?: string;
+  purpose: string[];
+  genderPreference: 'male' | 'female' | 'any';
+  description: string;
+  createdAt: string;
+}[] = [
+  {
+    id: 'post_01',
+    userId: 'post_user_1',
+    username: 'fan_xiaowu',
+    displayName: '范小五',
+    eventName: 'Taylor Swift 时代巡演',
+    eventDate: '2026-08-15',
+    city: '上海',
+    venueName: '上海体育场',
+    purpose: ['share_hotel', 'queue_together'],
+    genderPreference: 'female',
+    description: '买了内场票，想找女生一起拼房住两晚，演唱会当天可以一起排队入场～',
+    createdAt: '2026-05-20T10:30:00Z',
+  },
+  {
+    id: 'post_02',
+    userId: 'post_user_2',
+    username: 'jay_fan_88',
+    displayName: '杰伦迷弟',
+    eventName: '周杰伦嘉年华巡演',
+    eventDate: '2026-07-10',
+    city: '北京',
+    venueName: '国家体育场（鸟巢）',
+    purpose: ['share_ride'],
+    genderPreference: 'any',
+    description: '从天津出发去鸟巢看周杰伦，找同路人拼车，看完一起回天津。',
+    createdAt: '2026-05-18T14:00:00Z',
+  },
+  {
+    id: 'post_03',
+    userId: 'post_user_3',
+    username: 'music_fest_goer',
+    displayName: '音乐节达人',
+    eventName: '迷笛音乐节',
+    eventDate: '2026-09-01',
+    city: '成都',
+    purpose: ['share_hotel', 'meal_buddy'],
+    genderPreference: 'any',
+    description: '计划去迷笛音乐节三天，找搭子一起拼酒店和吃饭，男女不限～',
+    createdAt: '2026-05-15T09:00:00Z',
   },
 ];

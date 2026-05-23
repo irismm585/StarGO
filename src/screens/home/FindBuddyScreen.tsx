@@ -5,8 +5,7 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  Platform,
+  SectionList,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors } from '../../constants/colors';
@@ -15,16 +14,33 @@ import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getAllBuddies,
-  addFriend,
-  removeFriend,
+  getBuddyPosts,
+  filterBuddies,
   sendFriendRequest,
-  acceptFriendRequest,
-  declineFriendRequest,
+  addFriend,
 } from '../../services/buddy';
 import Header from '../../components/common/Header';
-import Button from '../../components/common/Button';
 import { localizeBuddy } from '../../utils/localization';
-import type { BuddyProfile } from '../../types/buddy';
+import {
+  BUDDY_PURPOSE_OPTIONS,
+  getPurposeLabel,
+  getPurposeIcon,
+  type BuddyProfile,
+  type BuddyPost,
+  type BuddyFilter,
+  type BuddyPurpose,
+} from '../../types/buddy';
+
+const GENDER_OPTIONS = [
+  { key: 'all' as const, icon: '👥', labelZh: '全部', labelEn: 'All' },
+  { key: 'male' as const, icon: '👨', labelZh: '男性', labelEn: 'Male' },
+  { key: 'female' as const, icon: '👩', labelZh: '女性', labelEn: 'Female' },
+];
+
+type SectionData =
+  | { type: 'header'; title: string }
+  | { type: 'post'; post: BuddyPost }
+  | { type: 'buddy'; buddy: BuddyProfile };
 
 export default function FindBuddyScreen() {
   const navigation = useNavigation<any>();
@@ -32,14 +48,23 @@ export default function FindBuddyScreen() {
   const { t, language } = useTranslation();
 
   const [buddies, setBuddies] = useState<BuddyProfile[]>([]);
+  const [posts, setPosts] = useState<BuddyPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showRequestsModal, setShowRequestsModal] = useState(false);
 
-  const loadBuddies = useCallback(async () => {
+  // Filters
+  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
+  const [purposeFilter, setPurposeFilter] = useState<BuddyPurpose[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllBuddies(user?.id);
-      setBuddies(data);
+      const [allBuddies, allPosts] = await Promise.all([
+        getAllBuddies(user?.id),
+        getBuddyPosts(),
+      ]);
+      setBuddies(allBuddies);
+      setPosts(allPosts);
     } catch (e) {
       console.error(e);
     } finally {
@@ -49,56 +74,49 @@ export default function FindBuddyScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadBuddies();
-    }, [loadBuddies])
+      loadData();
+    }, [loadData])
   );
 
-  const handleAddFriend = async (buddyId: string) => {
-    if (!user) return;
-    await sendFriendRequest(user.id, buddyId);
-    setBuddies((prev) =>
-      prev.map((b) =>
-        b.id === buddyId ? { ...b, friendRequestStatus: 'pending' as const } : b
-      )
+  const togglePurposeFilter = (p: BuddyPurpose) => {
+    setPurposeFilter((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
     );
   };
 
-  const handleAcceptRequest = async (buddyId: string) => {
-    if (!user) return;
-    await acceptFriendRequest(user.id, buddyId);
-    setBuddies((prev) =>
-      prev.map((b) =>
-        b.id === buddyId
-          ? { ...b, isFriend: true, friendRequestStatus: 'accepted' as const }
-          : b
-      )
-    );
+  const filter: BuddyFilter = {
+    gender: genderFilter,
+    purpose: purposeFilter,
+    city: '',
   };
 
-  const handleDeclineRequest = async (buddyId: string) => {
-    if (!user) return;
-    await declineFriendRequest(user.id, buddyId);
-    setBuddies((prev) =>
-      prev.map((b) =>
-        b.id === buddyId
-          ? { ...b, friendRequestStatus: 'none' as const }
-          : b
-      )
-    );
-  };
+  const filteredBuddies = filterBuddies(buddies, filter);
+  const myBuddies = filteredBuddies.filter((b) => b.isFriend);
+  const discoverBuddies = filteredBuddies.filter((b) => !b.isFriend);
 
-  const handleRemoveFriend = async (buddyId: string) => {
-    await removeFriend(buddyId);
-    setBuddies((prev) =>
-      prev.map((b) =>
-        b.id === buddyId
-          ? { ...b, isFriend: false, friendRequestStatus: 'none' as const }
-          : b
-      )
-    );
-  };
+  const sections: { title: string; data: SectionData[] }[] = [
+    // Posts section
+    {
+      title: t.findBuddy.buddyPosts,
+      data: posts.length > 0
+        ? posts.map((p) => ({ type: 'post' as const, post: p }))
+        : [{ type: 'header' as const, title: t.findBuddy.noPosts }],
+    },
+    // Buddies section
+    {
+      title: t.findBuddy.discoverBuddies,
+      data: discoverBuddies.map((b) => ({ type: 'buddy' as const, buddy: b })),
+    },
+  ];
 
-  const handleChat = (buddy: BuddyProfile) => {
+  if (myBuddies.length > 0) {
+    sections.unshift({
+      title: t.findBuddy.myBuddies,
+      data: myBuddies.map((b) => ({ type: 'buddy' as const, buddy: b })),
+    });
+  }
+
+  const handleContact = (buddy: BuddyProfile) => {
     const localized = localizeBuddy(buddy, language);
     navigation.navigate('ChatTab', {
       screen: 'ChatRoom',
@@ -109,330 +127,504 @@ export default function FindBuddyScreen() {
     });
   };
 
-  const incomingRequests = buddies.filter(
-    (b) => b.friendRequestStatus === 'pending'
-  );
+  const handleAddBuddy = async (buddyId: string) => {
+    if (!user) return;
+    await sendFriendRequest(user.id, buddyId);
+    setBuddies((prev) =>
+      prev.map((b) =>
+        b.id === buddyId ? { ...b, friendRequestStatus: 'pending' as const } : b,
+      ),
+    );
+  };
 
-  const friendBuddies = buddies.filter((b) => b.isFriend);
-  const discoverBuddies = buddies.filter((b) => !b.isFriend);
+  const handleCreatePost = () => {
+    navigation.navigate('CreateBuddyPost');
+  };
 
-  const listData: (BuddyProfile | { type: 'header'; title: string })[] = [
-    ...(friendBuddies.length > 0
-      ? [{ type: 'header' as const, title: t.findBuddy.myBuddies }]
-      : []),
-    ...friendBuddies,
-    ...(discoverBuddies.length > 0
-      ? [{ type: 'header' as const, title: t.findBuddy.discoverBuddies }]
-      : []),
-    ...discoverBuddies,
-  ];
-
-  const renderBuddyCard = ({ item }: { item: BuddyProfile | { type: 'header'; title: string } }) => {
-    if ('type' in item && item.type === 'header') {
-      return <Text style={styles.sectionTitle}>{item.title}</Text>;
-    }
-    const buddyItem = item as BuddyProfile;
-    const localized = localizeBuddy(buddyItem, language);
-    const isFriend = buddyItem.isFriend;
-    const isPending = buddyItem.friendRequestStatus === 'pending';
-
-    const matchColor =
-      buddyItem.matchPercentage >= 90 ? colors.success
-        : buddyItem.matchPercentage >= 80 ? colors.primary
-        : buddyItem.matchPercentage >= 70 ? colors.warning
-        : colors.textMuted;
+  const renderPostCard = (post: BuddyPost) => {
+    const genderLabel =
+      post.genderPreference === 'any'
+        ? language === 'zh' ? '不限' : 'Any'
+        : post.genderPreference === 'male'
+          ? language === 'zh' ? '男性' : 'Male'
+          : language === 'zh' ? '女性' : 'Female';
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatar}>{localized.avatar}</Text>
+      <View style={styles.postCard} key={post.id}>
+        <View style={styles.postCardTop}>
+          <View style={styles.postAvatar}>
+            <Text style={styles.postAvatarText}>
+              {post.displayName.charAt(0).toUpperCase()}
+            </Text>
           </View>
-          <View style={styles.buddyInfo}>
-            <View style={styles.buddyNameRow}>
-              <Text style={styles.buddyName}>{localized.name}</Text>
-              <View style={[styles.matchBadge, { backgroundColor: matchColor + '18', borderColor: matchColor + '40' }]}>
-                <Text style={[styles.matchText, { color: matchColor }]}>
-                  {buddyItem.matchPercentage}% {t.community.match}
-                </Text>
-              </View>
+          <View style={styles.postInfo}>
+            <Text style={styles.postUserName}>{post.displayName}</Text>
+            <Text style={styles.postEventName} numberOfLines={1}>
+              🎫 {post.eventName}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.contactBtn}>
+            <Text style={styles.contactBtnText}>{t.findBuddy.contact}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.postMeta}>
+          {post.eventDate ? (
+            <Text style={styles.postMetaText}>📅 {post.eventDate}</Text>
+          ) : null}
+          <Text style={styles.postMetaText}>📍 {post.city}</Text>
+          <Text style={styles.postMetaText}>
+            {language === 'zh' ? '偏好' : 'Pref'}: {genderLabel}
+          </Text>
+        </View>
+
+        <View style={styles.postPurposeRow}>
+          {post.purpose.map((p, idx) => (
+            <View key={idx} style={styles.postPurposeBadge}>
+              <Text style={styles.postPurposeIcon}>{getPurposeIcon(p as BuddyPurpose)}</Text>
+              <Text style={styles.postPurposeText}>
+                {getPurposeLabel(p as BuddyPurpose, language)}
+              </Text>
             </View>
-            <Text style={styles.buddyBio} numberOfLines={1}>
-              {localized.bio}
+          ))}
+        </View>
+
+        {post.description ? (
+          <Text style={styles.postDesc} numberOfLines={3}>
+            {post.description}
+          </Text>
+        ) : null}
+      </View>
+    );
+  };
+
+  const renderBuddyCard = (buddy: BuddyProfile) => {
+    const localized = localizeBuddy(buddy, language);
+    const matchColor =
+      buddy.matchPercentage >= 80 ? colors.success
+        : buddy.matchPercentage >= 60 ? colors.primary
+        : colors.textMuted;
+    const isPending = buddy.friendRequestStatus === 'pending';
+
+    return (
+      <View style={styles.buddyCard} key={buddy.id}>
+        <View style={styles.buddyCardTop}>
+          <View style={styles.buddyAvatarContainer}>
+            <Text style={styles.buddyAvatar}>{localized.avatar}</Text>
+          </View>
+          <View style={styles.buddyInfoBlock}>
+            <Text style={styles.buddyName}>{localized.name}</Text>
+            <Text style={styles.buddyCity}>📍 {localized.city}</Text>
+          </View>
+          <View style={[styles.matchBadge, { backgroundColor: matchColor + '18', borderColor: matchColor + '40' }]}>
+            <Text style={[styles.matchText, { color: matchColor }]}>
+              {buddy.matchPercentage}%
             </Text>
           </View>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          {isFriend ? (
-            <>
-              <TouchableOpacity
-                style={styles.friendBadge}
-                activeOpacity={1}
-              >
-                <Text style={styles.friendBadgeText}>
-                  ✓ {t.findBuddy.added}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.primaryBtnSmall}
-                onPress={() => handleChat(item)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.primaryBtnSmallText}>
-                  {t.findBuddy.chat}
-                </Text>
-              </TouchableOpacity>
-            </>
+        {/* Purpose badges */}
+        <View style={styles.buddyPurposeRow}>
+          {buddy.purpose.map((p, idx) => (
+            <View key={idx} style={styles.buddyPurposeBadge}>
+              <Text style={styles.buddyPurposeBadgeIcon}>{getPurposeIcon(p)}</Text>
+              <Text style={styles.buddyPurposeBadgeText}>
+                {getPurposeLabel(p, language)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Bio */}
+        {localized.bio ? (
+          <Text style={styles.buddyBio} numberOfLines={2}>{localized.bio}</Text>
+        ) : null}
+
+        {/* Actions */}
+        <View style={styles.buddyActions}>
+          {buddy.isFriend ? (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => handleContact(buddy)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.primaryBtnText}>💬 {t.findBuddy.chat}</Text>
+            </TouchableOpacity>
           ) : isPending ? (
-            <>
-              <TouchableOpacity
-                style={styles.pendingBadge}
-                activeOpacity={1}
-              >
-                <Text style={styles.pendingBadgeText}>
-                  {t.findBuddy.friendRequested}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.primaryBtnSmall}
-                onPress={() => handleChat(item)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.primaryBtnSmallText}>
-                  {t.findBuddy.privateChat}
-                </Text>
-              </TouchableOpacity>
-            </>
+            <View style={styles.pendingBadgeFull}>
+              <Text style={styles.pendingBadgeFullText}>{t.findBuddy.friendRequested}</Text>
+            </View>
           ) : (
-            <>
-              <TouchableOpacity
-                style={styles.primaryBtnSmall}
-                onPress={() => handleAddFriend(item.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.primaryBtnSmallText}>
-                  {t.findBuddy.addFriend}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.outlineBtnSmall}
-                onPress={() => handleChat(item)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.outlineBtnSmallText}>
-                  {t.findBuddy.privateChat}
-                </Text>
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => handleAddBuddy(buddy.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.addBtnText}>+ {t.findBuddy.addFriend}</Text>
+            </TouchableOpacity>
           )}
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>{t.community.location}</Text>
-            <Text style={styles.detailValue}>{localized.city}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>{t.community.age}</Text>
-            <Text style={styles.detailValue}>{item.age}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>{t.community.gender}</Text>
-            <Text style={styles.detailValue}>
-              {item.gender === 'male'
-                ? t.community.genderMale
-                : t.community.genderFemale}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.interestsRow}>
-          <Text style={styles.detailLabel}>{t.community.interests}：</Text>
-          {localized.interests.map((interest, idx) => (
-            <View key={idx} style={styles.interestBadge}>
-              <Text style={styles.interestText}>{interest}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.purposeRow}>
-          <Text style={styles.detailLabel}>{t.community.purpose}：</Text>
-          {localized.purpose.map((p, idx) => (
-            <View key={idx} style={styles.purposeBadge}>
-              <Text style={styles.purposeText}>{p}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.styleRow}>
-          <Text style={styles.detailLabel}>{t.community.travelStyle}：</Text>
-          {localized.travelStyle.map((s, idx) => (
-            <View key={idx} style={styles.styleBadge}>
-              <Text style={styles.styleText}>{s}</Text>
-            </View>
-          ))}
+          {!buddy.isFriend && (
+            <TouchableOpacity
+              style={styles.outlineBtn}
+              onPress={() => handleContact(buddy)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.outlineBtnText}>💬 {t.findBuddy.privateChat}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
   };
 
+  const ListHeader = () => (
+    <View>
+      {/* Create Post Button */}
+      <TouchableOpacity style={styles.createPostBtn} onPress={handleCreatePost} activeOpacity={0.85}>
+        <Text style={styles.createPostIcon}>+</Text>
+        <Text style={styles.createPostText}>{t.findBuddy.postBuddy}</Text>
+      </TouchableOpacity>
+
+      {/* Filter Toggle */}
+      <TouchableOpacity
+        style={styles.filterToggle}
+        onPress={() => setShowFilters((v) => !v)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.filterToggleText}>
+          {language === 'zh' ? '🔍 筛选条件' : '🔍 Filters'}
+        </Text>
+        <Text style={styles.filterToggleArrow}>{showFilters ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <View style={styles.filterPanel}>
+          {/* Gender */}
+          <Text style={styles.filterLabel}>{t.findBuddy.filterGender}</Text>
+          <View style={styles.filterChipsRow}>
+            {GENDER_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={[styles.filterChip, genderFilter === opt.key && styles.filterChipActive]}
+                onPress={() => setGenderFilter(opt.key)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.filterChipIcon}>{opt.icon}</Text>
+                <Text style={[styles.filterChipText, genderFilter === opt.key && styles.filterChipTextActive]}>
+                  {language === 'zh' ? opt.labelZh : opt.labelEn}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Purpose */}
+          <Text style={[styles.filterLabel, { marginTop: spacing.md }]}>
+            {t.findBuddy.filterPurpose}
+          </Text>
+          <View style={styles.filterChipsRow}>
+            {BUDDY_PURPOSE_OPTIONS.map((opt) => {
+              const active = purposeFilter.includes(opt.key);
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.filterChip, active && styles.filterChipActive]}
+                  onPress={() => togglePurposeFilter(opt.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.filterChipIcon}>{opt.icon}</Text>
+                  <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                    {language === 'zh' ? opt.labelZh : opt.labelEn}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const activeFilters = genderFilter !== 'all' || purposeFilter.length > 0;
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Header title={t.findBuddy.title} showBack />
+        <View style={styles.center}>
+          <Text style={styles.loadingText}>{t.common.loading}</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Header title={t.findBuddy.title} showBack />
 
-      {/* Friend Requests Button */}
-      {incomingRequests.length > 0 && (
-        <TouchableOpacity
-          style={styles.requestsBanner}
-          onPress={() => setShowRequestsModal(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.requestsBannerText}>
-            {t.findBuddy.friendRequests} ({incomingRequests.length})
-          </Text>
-          <Text style={styles.requestsBannerArrow}>›</Text>
-        </TouchableOpacity>
-      )}
-
       <FlatList
-        data={listData}
-        keyExtractor={(item, idx) =>
-          'type' in item && item.type === 'header' ? `h-${idx}` : (item as BuddyProfile).id
-        }
-        renderItem={renderBuddyCard}
-        contentContainerStyle={styles.listContent}
+        data={sections}
+        keyExtractor={(item) => item.title}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>—</Text>
-            <Text style={styles.emptyTitle}>{t.findBuddy.noBuddies}</Text>
-          </View>
-        }
-      />
-
-      {/* Friend Requests Modal */}
-      <Modal
-        visible={showRequestsModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowRequestsModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowRequestsModal(false)}>
-                <Text style={styles.modalCancelText}>{t.common.cancel}</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>
-                {t.findBuddy.friendRequests}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={ListHeader}
+        renderItem={({ item: section }) => (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.data.length === 0 ? (
+              <Text style={styles.emptyText}>
+                {section.title === t.findBuddy.buddyPosts
+                  ? t.findBuddy.noPosts
+                  : t.findBuddy.noBuddies}
               </Text>
-              <View style={{ width: 44 }} />
-            </View>
-
-            {incomingRequests.length === 0 ? (
-              <View style={styles.emptyModal}>
-                <Text style={styles.emptyModalText}>
-                  {t.findBuddy.noRequests}
-                </Text>
-              </View>
             ) : (
-              <FlatList
-                data={incomingRequests}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.modalList}
-                renderItem={({ item }) => {
-                  const localized = localizeBuddy(item, language);
+              section.data.map((item) => {
+                if (item.type === 'header') {
                   return (
-                    <View style={styles.requestItem}>
-                      <View style={styles.requestInfo}>
-                        <Text style={styles.requestAvatar}>
-                          {localized.avatar}
-                        </Text>
-                        <View style={styles.requestTextBlock}>
-                          <Text style={styles.requestName}>
-                            {localized.name}
-                          </Text>
-                          <Text style={styles.requestBio} numberOfLines={1}>
-                            {localized.bio}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.requestActions}>
-                        <TouchableOpacity
-                          style={styles.acceptBtn}
-                          onPress={() => {
-                            handleAcceptRequest(item.id);
-                          }}
-                        >
-                          <Text style={styles.acceptBtnText}>
-                            {t.findBuddy.friendAccept}
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.declineBtn}
-                          onPress={() => {
-                            handleDeclineRequest(item.id);
-                          }}
-                        >
-                          <Text style={styles.declineBtnText}>
-                            {t.findBuddy.friendDecline}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
+                    <View key="empty" style={styles.emptyState}>
+                      <Text style={styles.emptyIcon}>
+                        {section.title === t.findBuddy.buddyPosts ? '📋' : '—'}
+                      </Text>
+                      <Text style={styles.emptyText}>
+                        {item.title}
+                      </Text>
                     </View>
                   );
-                }}
-              />
+                }
+                if (item.type === 'post') {
+                  return renderPostCard(item.post);
+                }
+                return renderBuddyCard(item.buddy);
+              })
             )}
           </View>
-        </View>
-      </Modal>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { fontSize: fontSize.md, color: colors.textSecondary },
+  listContent: { paddingBottom: spacing.xxxl },
+
+  // Create Post Button
+  createPostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
   },
-  listContent: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xxxl,
+  createPostIcon: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  createPostText: {
+    fontSize: fontSize.md,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+
+  // Filter Toggle
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  filterToggleText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterToggleArrow: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+
+  // Filter Panel
+  filterPanel: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  filterLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  filterChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+  },
+  filterChipActive: {
+    backgroundColor: `${colors.primary}15`,
+    borderColor: colors.primary,
+  },
+  filterChipIcon: { fontSize: 14 },
+  filterChipText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: colors.primary,
+  },
+
+  // Sections
+  section: {
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.lg,
   },
   sectionTitle: {
     fontSize: fontSize.lg,
     fontWeight: '700',
     color: colors.text,
-    marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
-  card: {
+
+  // Post Card
+  postCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    shadowColor: '#9578C8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 3,
   },
-  cardTop: {
+  postCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  postAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  postAvatarText: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  postInfo: {
+    flex: 1,
+  },
+  postUserName: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  postEventName: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  contactBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: borderRadius.full,
+  },
+  contactBtnText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  postMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  postMetaText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  postPurposeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  postPurposeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    gap: 2,
+  },
+  postPurposeIcon: { fontSize: 12 },
+  postPurposeText: {
+    fontSize: 10,
+    color: '#4C1D95',
+    fontWeight: '600',
+  },
+  postDesc: {
+    fontSize: fontSize.sm,
+    color: colors.text,
+    lineHeight: 20,
+  },
+
+  // Buddy Card
+  buddyCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  buddyCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  avatarContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  buddyAvatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -440,10 +632,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
   },
-  avatar: {
-    fontSize: 26,
+  buddyAvatar: {
+    fontSize: 22,
   },
-  buddyInfo: {
+  buddyInfoBlock: {
     flex: 1,
     marginRight: spacing.sm,
   },
@@ -453,292 +645,109 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 2,
   },
-  buddyBio: {
+  buddyCity: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  primaryBtnSmall: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.full,
-  },
-  primaryBtnSmallText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-  },
-  outlineBtnSmall: {
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.full,
-  },
-  outlineBtnSmallText: {
-    color: colors.primary,
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-  },
-  friendBadge: {
-    backgroundColor: `${colors.success}18`,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.full,
-  },
-  friendBadgeText: {
-    color: colors.success,
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-  },
-  pendingBadge: {
-    backgroundColor: `${colors.warning}18`,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.full,
-  },
-  pendingBadgeText: {
-    color: colors.warning,
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-  },
-  detailItem: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  interestsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  interestBadge: {
-    backgroundColor: `${colors.primary}12`,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: borderRadius.sm,
-  },
-  interestText: {
-    fontSize: fontSize.xs,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  buddyNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: 2,
-  },
   matchBadge: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: borderRadius.sm,
     borderWidth: 1,
   },
   matchText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
   },
-  purposeRow: {
+  buddyPurposeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
     gap: spacing.xs,
-    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  purposeBadge: {
+  buddyPurposeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.accent + '20',
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.accent + '30',
+    gap: 2,
   },
-  purposeText: {
-    fontSize: fontSize.xs,
+  buddyPurposeBadgeIcon: { fontSize: 12 },
+  buddyPurposeBadgeText: {
+    fontSize: 10,
     color: '#4C1D95',
     fontWeight: '600',
   },
-  styleRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  styleBadge: {
-    backgroundColor: colors.verified + '18',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.verified + '30',
-  },
-  styleText: {
-    fontSize: fontSize.xs,
-    color: colors.verified,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  // Requests Banner
-  requestsBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    backgroundColor: colors.primary + '12',
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  requestsBannerText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  requestsBannerArrow: {
-    fontSize: 22,
-    color: colors.primary,
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderTopLeftRadius: borderRadius.xxl,
-    borderTopRightRadius: borderRadius.xxl,
-    paddingBottom: Platform.OS === 'ios' ? 34 : spacing.xl,
-    maxHeight: '60%',
-    shadowColor: '#9578C8',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  modalCancelText: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  modalList: {
-    padding: spacing.lg,
-  },
-  emptyModal: {
-    padding: spacing.xxl,
-    alignItems: 'center',
-  },
-  emptyModalText: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  requestItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background,
-    marginBottom: spacing.sm,
-  },
-  requestInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  requestAvatar: {
-    fontSize: 28,
-    marginRight: spacing.sm,
-  },
-  requestTextBlock: {
-    flex: 1,
-  },
-  requestName: {
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  requestBio: {
+  buddyBio: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: spacing.md,
   },
-  requestActions: {
+  buddyActions: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  acceptBtn: {
+  primaryBtn: {
     backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
   },
-  acceptBtnText: {
+  primaryBtnText: {
     color: '#FFFFFF',
     fontSize: fontSize.xs,
     fontWeight: '700',
   },
-  declineBtn: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+  addBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
   },
-  declineBtnText: {
-    color: colors.textSecondary,
+  addBtnText: {
+    color: '#FFFFFF',
     fontSize: fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  pendingBadgeFull: {
+    backgroundColor: `${colors.warning}18`,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  pendingBadgeFullText: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  outlineBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  outlineBtnText: {
+    color: colors.primary,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+
+  // Empty state
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  emptyIcon: {
+    fontSize: 36,
+    marginBottom: spacing.sm,
+  },
+  emptyText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

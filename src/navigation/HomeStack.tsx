@@ -5,6 +5,7 @@ import EventDetailScreen from '../screens/home/EventDetailScreen';
 import EventChatAuthScreen from '../screens/home/EventChatAuthScreen';
 import EventBuddyScreen from '../screens/home/EventBuddyScreen';
 import FindBuddyScreen from '../screens/home/FindBuddyScreen';
+import CreateBuddyPostScreen from '../screens/home/CreateBuddyPostScreen';
 import type { MockEvent } from '../constants/events';
 
 export type HomeStackParamList = {
@@ -13,6 +14,7 @@ export type HomeStackParamList = {
   EventChatAuth: { event: MockEvent };
   EventBuddy: { event: MockEvent };
   FindBuddy: undefined;
+  CreateBuddyPost: { prefill?: { eventName?: string; eventDate?: string; city?: string } } | undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -25,6 +27,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="EventChatAuth" component={EventChatAuthScreen} />
       <Stack.Screen name="EventBuddy" component={EventBuddyScreen} />
       <Stack.Screen name="FindBuddy" component={FindBuddyScreen} />
+      <Stack.Screen name="CreateBuddyPost" component={CreateBuddyPostScreen} />
     </Stack.Navigator>
   );
 }
