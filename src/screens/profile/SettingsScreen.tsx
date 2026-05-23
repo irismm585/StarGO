@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Switch,
   Alert,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { fontSize, spacing, borderRadius } from '../../constants/layout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,9 +20,25 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isDark, toggle } = useTheme();
   const colors = useColors();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalContent, setModalContent] = useState('');
+
+  const handleShowTerms = () => {
+    setModalTitle(t.profile.termsTitle);
+    setModalContent(t.profile.termsContent);
+    setModalVisible(true);
+  };
+
+  const handleShowPrivacy = () => {
+    setModalTitle(t.profile.privacyTitle);
+    setModalContent(t.profile.privacyContent);
+    setModalVisible(true);
+  };
 
   const handleLogout = () => {
     Alert.alert(t.profile.logout, t.profile.logoutConfirm, [
@@ -74,15 +92,15 @@ export default function SettingsScreen() {
             <Text style={styles.rowValue}>1.0.0</Text>
           </View>
           <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>服务条款</Text>
+          <TouchableOpacity style={styles.row} onPress={handleShowTerms} activeOpacity={0.7}>
+            <Text style={styles.rowLabel}>{t.profile.termsTitle}</Text>
             <Text style={styles.rowArrow}>›</Text>
-          </View>
+          </TouchableOpacity>
           <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>隐私政策</Text>
+          <TouchableOpacity style={styles.row} onPress={handleShowPrivacy} activeOpacity={0.7}>
+            <Text style={styles.rowLabel}>{t.profile.privacyTitle}</Text>
             <Text style={styles.rowArrow}>›</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Logout */}
@@ -94,6 +112,30 @@ export default function SettingsScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Terms / Privacy Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalText}>{modalContent}</Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalCloseText}>{t.common.close}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -142,6 +184,51 @@ function makeStyles(colors: typeof import('../../constants/colors').colors) {
   },
   logoutSection: {
     marginTop: spacing.xxxl,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    width: '100%',
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  modalText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 22,
+  },
+  modalCloseButton: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.md,
+    fontWeight: '700',
   },
 });
 }

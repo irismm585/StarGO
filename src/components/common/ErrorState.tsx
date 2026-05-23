@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { fontSize, spacing } from '../../constants/layout';
+import { useColors } from '../../contexts/ThemeContext';
 import Button from './Button';
 
 interface ErrorStateProps {
@@ -11,6 +12,8 @@ interface ErrorStateProps {
 }
 
 export default function ErrorState({ message, onRetry, retryLabel = '重试' }: ErrorStateProps) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>😕</Text>
@@ -28,7 +31,8 @@ export default function ErrorState({ message, onRetry, retryLabel = '重试' }: 
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -50,3 +54,4 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
 });
+}

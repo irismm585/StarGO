@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -7,8 +7,9 @@ import {
   ViewStyle,
   Animated,
 } from 'react-native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { borderRadius, fontSize, spacing, shadow } from '../../constants/layout';
+import { useColors } from '../../contexts/ThemeContext';
 
 type Variant = 'primary' | 'outline' | 'ghost';
 
@@ -50,6 +51,8 @@ export default function Button({
   }, [scaleAnim]);
 
   const isDisabled = loading || disabled;
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   if (variant === 'primary') {
     return (
@@ -109,7 +112,8 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   fullWidth: { width: '100%' },
   button: {
     height: 52,
@@ -159,3 +163,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+}

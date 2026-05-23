@@ -6,6 +6,7 @@ export const zh = {
   common: {
     back: '返回',
     cancel: '取消',
+    close: '关闭',
     confirm: '确定',
     save: '保存',
     delete: '删除',
@@ -248,6 +249,10 @@ export const zh = {
     verifyTitle: '粉丝认证',
     verifyDesc: '认证后加入专属粉丝群',
     favoriteArtists: '喜爱的艺人',
+    termsTitle: '服务条款',
+    privacyTitle: '隐私政策',
+    termsContent: '欢迎使用 StarGo（以下简称"本应用"）。请您仔细阅读以下条款。使用本应用即表示您同意以下条款：\n\n1. 服务说明\n本应用提供演唱会资讯、行程规划、搭子匹配、社区交流及纪念文案生成等服务。\n\n2. 用户责任\n用户应保证所填信息真实有效，不得发布违法、骚扰、虚假或侵权内容。\n\n3. 隐私保护\n我们重视您的隐私。详细信息请参见《隐私政策》。\n\n4. 免责声明\n本应用不对搭子匹配结果、行程规划建议或第三方内容作任何明示或暗示的担保。\n\n5. 条款变更\n我们保留随时修改本条款的权利，修改后的条款一经发布即生效。',
+    privacyContent: 'StarGo 尊重并保护您的隐私。本政策说明我们如何收集、使用和保护您的个人信息：\n\n1. 信息收集\n我们可能收集以下信息：\n- 您主动提供的个人信息（用户名、邮箱、头像等）\n- 您发布的内容（行程规划、搭子帖子、纪念文案等）\n- 设备信息（设备型号、操作系统版本等）\n\n2. 信息使用\n我们收集的信息用于：\n- 提供和优化本应用的服务\n- 为您推荐合适的搭子和活动\n- 改善用户体验\n\n3. 信息保护\n我们采用合理的技术手段保护您的个人信息，防止未经授权的访问、使用或泄露。\n\n4. 联系我们\n如您对隐私政策有任何疑问，请通过应用内反馈功能联系我们。',
   },
   findBuddy: {
     title: '寻找搭子',
@@ -311,6 +316,7 @@ export const en: typeof zh = {
   common: {
     back: 'Back',
     cancel: 'Cancel',
+    close: 'Close',
     confirm: 'Confirm',
     save: 'Save',
     delete: 'Delete',
@@ -553,6 +559,10 @@ export const en: typeof zh = {
     verifyTitle: 'Fan Verification',
     verifyDesc: 'Get verified to join exclusive fan groups',
     favoriteArtists: 'Favorite Artists',
+    termsTitle: 'Terms of Service',
+    privacyTitle: 'Privacy Policy',
+    termsContent: 'Welcome to StarGo. By using this app, you agree to the following terms:\n\n1. Service Description\nStarGo provides concert information, trip planning, buddy matching, community features, and memorial content generation.\n\n2. User Responsibilities\nYou agree to provide accurate information and not to post illegal, harassing, false, or infringing content.\n\n3. Privacy\nWe value your privacy. Please see our Privacy Policy for details.\n\n4. Disclaimer\nStarGo makes no warranties regarding buddy match results, itinerary suggestions, or third-party content.\n\n5. Terms Changes\nWe reserve the right to modify these terms at any time. Changes take effect immediately upon posting.',
+    privacyContent: 'StarGo respects and protects your privacy. This policy explains how we collect, use, and protect your personal information:\n\n1. Information Collection\nWe may collect:\n- Information you provide (username, email, avatar, etc.)\n- Content you post (itineraries, buddy posts, memorials, etc.)\n- Device information (model, OS version, etc.)\n\n2. Information Use\nWe use this information to:\n- Provide and improve our services\n- Recommend suitable buddies and events\n- Enhance user experience\n\n3. Information Protection\nWe use reasonable technical measures to protect your information from unauthorized access, use, or disclosure.\n\n4. Contact Us\nIf you have any questions about this policy, please contact us through the in-app feedback feature.',
   },
   findBuddy: {
     title: 'Find Buddies',

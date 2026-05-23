@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -6,8 +6,9 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { colors } from '../../constants/colors';
+import { colors as colorsLight } from '../../constants/colors';
 import { borderRadius, fontSize, spacing } from '../../constants/layout';
+import { useColors } from '../../contexts/ThemeContext';
 
 interface InputProps {
   label: string;
@@ -33,6 +34,8 @@ export default function Input({
   autoCapitalize = 'none',
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   return (
     <View style={styles.container}>
@@ -64,7 +67,8 @@ export default function Input({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   container: {
     marginBottom: spacing.lg,
   },
@@ -111,3 +115,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 });
+}
