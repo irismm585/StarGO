@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors as colorsLight } from '../../constants/colors';
 import { borderRadius, fontSize, spacing, shadow } from '../../constants/layout';
+import { useColors } from '../../contexts/ThemeContext';
 import { formatDateRange } from '../../utils/formatters';
 import type { SavedItinerary } from '../../types/itinerary';
 
@@ -11,6 +13,9 @@ interface ItineraryCardProps {
 }
 
 export default function ItineraryCard({ itinerary, onPress }: ItineraryCardProps) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <View style={styles.card}>
@@ -44,9 +49,10 @@ export default function ItineraryCard({ itinerary, onPress }: ItineraryCardProps
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: typeof colorsLight) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(30, 24, 44, 0.85)',
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     flexDirection: 'row',
     overflow: 'hidden',
@@ -63,7 +69,7 @@ const styles = StyleSheet.create({
   eventName: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: '#E8E4F0',
+    color: colors.text,
     marginBottom: spacing.sm,
   },
   tags: {
@@ -72,23 +78,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   tag: {
-    backgroundColor: 'rgba(149, 120, 200, 0.2)',
+    backgroundColor: `${colors.primary}10`,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
   },
   tagText: {
     fontSize: fontSize.xs,
-    color: '#B8A0E0',
+    color: colors.primary,
     fontWeight: '600',
   },
   date: {
     fontSize: fontSize.sm,
-    color: '#B8B0CC',
+    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   title: {
     fontSize: fontSize.md,
-    color: '#B8B0CC',
+    color: colors.textSecondary,
   },
 });
+}
