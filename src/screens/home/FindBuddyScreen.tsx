@@ -620,7 +620,7 @@ function makeStyles(colors: typeof colorsLight) {
   postPurposeIcon: { fontSize: 12 },
   postPurposeText: {
     fontSize: 10,
-    color: '#4C1D95',
+    color: colors.primary,
     fontWeight: '600',
   },
   postDesc: {
@@ -699,7 +699,7 @@ function makeStyles(colors: typeof colorsLight) {
   buddyPurposeBadgeIcon: { fontSize: 12 },
   buddyPurposeBadgeText: {
     fontSize: 10,
-    color: '#4C1D95',
+    color: colors.primary,
     fontWeight: '600',
   },
   buddyBio: {

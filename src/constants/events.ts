@@ -40,7 +40,7 @@ const EVENTS: MockEvent[] = [
     city: '东京',
     cityEn: 'Tokyo',
     date: '2026-08-15',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/concert?lock=1',
     description:
       '全球流行天后 Taylor Swift 携破纪录的 The Eras Tour 登陆东京巨蛋！连续三晚带来跨越她音乐生涯全部时代的精彩演出。',
     descriptionEn:
@@ -59,7 +59,7 @@ const EVENTS: MockEvent[] = [
     city: '北京',
     cityEn: 'Beijing',
     date: '2026-07-22',
-    image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/concert?lock=2',
     description:
       '周杰伦重返北京鸟巢，「嘉年华」巡演再度升级！全新舞台设计、经典曲目重温，从《青花瓷》到《告白气球》，带你在音乐中穿梭时光。',
     descriptionEn:
@@ -78,7 +78,7 @@ const EVENTS: MockEvent[] = [
     city: '上海',
     cityEn: 'Shanghai',
     date: '2026-08-28',
-    image: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/concert?lock=3',
     description:
       '日本现象级音乐组合 YOASOBI 再度展开亚洲巡演！以小说为灵感创作音乐的独特风格，带来《夜に駆ける》《アイドル》等热门歌曲的震撼现场。',
     descriptionEn:
@@ -97,7 +97,7 @@ const EVENTS: MockEvent[] = [
     city: '高雄',
     cityEn: 'Kaohsiung',
     date: '2026-12-25',
-    image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/concert?lock=4',
     description:
       '五月天圣诞夜重返高雄！「好好好想见到你」巡演延续感动，用音乐陪伴大家度过最温馨的圣诞夜晚。万人大合唱，蓝色荧光海，不见不散。',
     descriptionEn:
@@ -116,7 +116,7 @@ const EVENTS: MockEvent[] = [
     city: '香港',
     cityEn: 'Hong Kong',
     date: '2026-09-05',
-    image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/concert?lock=5',
     description:
       '陈奕迅再度登上红馆！FEAR AND DREAMS 主题演唱会以音乐探讨恐惧与梦想，舞台视觉与音乐完美融合。',
     descriptionEn:
@@ -137,7 +137,7 @@ const EVENTS: MockEvent[] = [
     city: '北京',
     cityEn: 'Beijing',
     date: '2026-06-20',
-    image: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/theatre?lock=6',
     description:
       '老舍先生经典巨作《茶馆》，北京人艺保留剧目。透过一个茶馆的兴衰，展现半个世纪的中国社会变迁，堪称中国话剧史上的巅峰之作。',
     descriptionEn:
@@ -156,7 +156,7 @@ const EVENTS: MockEvent[] = [
     city: '北京',
     cityEn: 'Beijing',
     date: '2026-07-10',
-    image: 'https://images.unsplash.com/photo-1524666643752-b1c3e3ce64fe?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/theatre?lock=7',
     description:
       '曹禺先生代表作《雷雨》，中国话剧百年经典。一个家庭的爱恨纠葛，在雷雨之夜彻底爆发，震撼人心的悲剧力量。',
     descriptionEn:
@@ -175,7 +175,7 @@ const EVENTS: MockEvent[] = [
     city: '上海',
     cityEn: 'Shanghai',
     date: '2026-08-12',
-    image: 'https://images.unsplash.com/photo-1460723237484-7f324625f1ec?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/theatre?lock=8',
     description:
       '孟京辉经典先锋话剧《恋爱的犀牛》，当代中国戏剧票房奇迹。一个关于爱情、执着与疯狂的故事，永远年轻，永远热泪盈眶。',
     descriptionEn:
@@ -196,7 +196,7 @@ const EVENTS: MockEvent[] = [
     city: '上海',
     cityEn: 'Shanghai',
     date: '2026-09-15',
-    image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/musical?lock=9',
     description:
       '安德鲁·韦伯经典音乐剧《歌剧魅影》，全球最长演的音乐剧之一。华丽的舞台、动人的旋律，讲述巴黎歌剧院地下迷宫中的爱情传奇。',
     descriptionEn:
@@ -215,7 +215,7 @@ const EVENTS: MockEvent[] = [
     city: '广州',
     cityEn: 'Guangzhou',
     date: '2026-10-08',
-    image: 'https://images.unsplash.com/photo-1579032365203-3f16b86fad4f?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/musical?lock=10',
     description:
       '世界四大音乐剧之一《悲惨世界》再度来华！根据雨果同名小说改编，气势恢宏的舞台、感人至深的故事，唱响自由与爱的永恒赞歌。',
     descriptionEn:
@@ -234,7 +234,7 @@ const EVENTS: MockEvent[] = [
     city: '深圳',
     cityEn: 'Shenzhen',
     date: '2026-11-20',
-    image: 'https://images.unsplash.com/photo-1518834107812-008b59b1c1e0?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/musical?lock=11',
     description:
       '安德鲁·韦伯不朽名作《猫》，亚洲巡演深圳站。杰里科猫族的年度盛会，经典名曲《Memory》响彻夜空，一部适合全家观赏的视听盛宴。',
     descriptionEn:
@@ -255,7 +255,7 @@ const EVENTS: MockEvent[] = [
     city: '北京',
     cityEn: 'Beijing',
     date: '2026-11-01',
-    image: 'https://images.unsplash.com/photo-1569517282132-25d22f4573e6?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/esport?lock=12',
     description:
       '全球电竞盛事——英雄联盟全球总决赛！来自各大赛区的顶尖战队将在鸟巢争夺召唤师奖杯，见证新的世界冠军诞生！',
     descriptionEn:
@@ -274,7 +274,7 @@ const EVENTS: MockEvent[] = [
     city: '上海',
     cityEn: 'Shanghai',
     date: '2026-10-05',
-    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/basketball?lock=13',
     description:
       'NBA 中国赛重磅来袭！洛杉矶湖人 vs 金州勇士，两大豪门巅峰对决。詹姆斯、库里等超级巨星亲临现场，为球迷献上原汁原味的 NBA 篮球盛宴。',
     descriptionEn:
@@ -293,7 +293,7 @@ const EVENTS: MockEvent[] = [
     city: '上海',
     cityEn: 'Shanghai',
     date: '2026-12-01',
-    image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/marathon?lock=14',
     description:
       '2026 上海国际马拉松赛，从外滩出发，跑过浦江两岸。全程马拉松、半程马拉松、健康跑等多个项目，适合不同水平的跑者参与。',
     descriptionEn:
@@ -314,7 +314,7 @@ const EVENTS: MockEvent[] = [
     city: '上海',
     cityEn: 'Shanghai',
     date: '2026-07-18',
-    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/comedy?lock=15',
     description:
       '笑果文化明星演员集结！呼兰、庞博、何广智等人气脱口秀演员轮番登台，用最犀利的段子、最爆笑的故事，陪你度过一个欢乐的夜晚。',
     descriptionEn:
@@ -333,7 +333,7 @@ const EVENTS: MockEvent[] = [
     city: '北京',
     cityEn: 'Beijing',
     date: '2026-08-22',
-    image: 'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/comedy?lock=16',
     description:
       '德云社最强阵容！郭德纲、于谦领衔，携德云社众弟子为您奉上原汁原味的传统相声。说学逗唱，笑料不断，感受中国曲艺的独特魅力。',
     descriptionEn:
@@ -352,7 +352,7 @@ const EVENTS: MockEvent[] = [
     city: '广州',
     cityEn: 'Guangzhou',
     date: '2026-09-25',
-    image: 'https://images.unsplash.com/photo-1472653431158-6364773b2a56?w=400&h=250&fit=crop',
+    image: 'https://loremflickr.com/400/250/comedy?lock=17',
     description:
       '国际知名脱口秀演员黄西（Joe Wong）再度国内巡演！从白宫记者协会晚宴到 Netflix 专场，黄西用独特的幽默视角，带你笑看中西文化差异。',
     descriptionEn:

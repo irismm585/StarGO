@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  TextInput,
   Image,
   Dimensions,
   Platform,
@@ -36,11 +37,60 @@ export default function HomeScreen() {
   const { t, language, toggleLanguage } = useTranslation();
 
   const [activeCategory, setActiveCategory] = useState<EventCategory | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterCity, setFilterCity] = useState('');
+  const [priceSort, setPriceSort] = useState<'none' | 'low-high' | 'high-low'>('none');
+  const [dateSort, setDateSort] = useState<'none' | 'earliest' | 'latest'>('none');
   const [events, setEvents] = useState<MockEvent[]>(getAllEvents());
 
+  // Filter events by category, search query, city, price sort, date sort
   useEffect(() => {
-    setEvents(getEventsByCategory(activeCategory));
-  }, [activeCategory]);
+    let filtered = getEventsByCategory(activeCategory);
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter((ev) => {
+        const fields = [
+          ev.eventName, ev.eventNameEn,
+          ev.artistName, ev.artistNameEn,
+          ev.venueName, ev.venueNameEn,
+          ev.city, ev.cityEn,
+        ];
+        return fields.some((f) => f && f.toLowerCase().includes(q));
+      });
+    }
+
+    // City filter
+    if (filterCity.trim()) {
+      const q = filterCity.trim().toLowerCase();
+      filtered = filtered.filter((ev) =>
+        (ev.city && ev.city.toLowerCase().includes(q)) ||
+        (ev.cityEn && ev.cityEn.toLowerCase().includes(q))
+      );
+    }
+
+    // Price sort (parse min price from "¥580-¥3,280" format)
+    if (priceSort !== 'none') {
+      filtered = [...filtered].sort((a, b) => {
+        const aMin = parseFloat(a.priceRange.replace(/[^0-9.-]/g, '').split('-')[0] || '0');
+        const bMin = parseFloat(b.priceRange.replace(/[^0-9.-]/g, '').split('-')[0] || '0');
+        return priceSort === 'low-high' ? aMin - bMin : bMin - aMin;
+      });
+    }
+
+    // Date sort
+    if (dateSort !== 'none') {
+      filtered = [...filtered].sort((a, b) => {
+        const aDate = new Date(a.date).getTime();
+        const bDate = new Date(b.date).getTime();
+        return dateSort === 'earliest' ? aDate - bDate : bDate - aDate;
+      });
+    }
+
+    setEvents(filtered);
+  }, [activeCategory, searchQuery, filterCity, priceSort, dateSort]);
 
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -71,6 +121,15 @@ export default function HomeScreen() {
   const handleMemorial = () => {
     navigation.navigate('MemorialTab', { screen: 'MemorialGenerator' });
   };
+
+  const resetFilters = () => {
+    setFilterCity('');
+    setPriceSort('none');
+    setDateSort('none');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = filterCity || priceSort !== 'none' || dateSort !== 'none';
 
   const renderEventCard = ({ item }: { item: MockEvent }) => {
     const localized = localizeEvent(item, language);
@@ -154,6 +213,111 @@ export default function HomeScreen() {
               <Text style={styles.headerSub}>{t.home.greeting}</Text>
             </View>
 
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <View style={styles.searchBar}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder={language === 'zh' ? '搜索活动、艺人、城市...' : 'Search events, artists, cities...'}
+                  placeholderTextColor={colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7} style={styles.searchClearBtn}>
+                    <Text style={styles.searchClear}>✕</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[styles.filterBtn, (showFilters || hasActiveFilters) && styles.filterBtnActive]}
+                  onPress={() => setShowFilters((v) => !v)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.filterBtnText, (showFilters || hasActiveFilters) && styles.filterBtnTextActive]}>
+                    ⚙
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Filter Panel */}
+            {showFilters && (
+              <View style={styles.filterPanel}>
+                {/* Price Sort */}
+                <Text style={styles.filterLabel}>
+                  {language === 'zh' ? '价格排序' : 'Price Sort'}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  {(['none', 'low-high', 'high-low'] as const).map((opt) => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.filterChip, priceSort === opt && styles.filterChipActive]}
+                      onPress={() => setPriceSort(opt)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.filterChipText, priceSort === opt && styles.filterChipTextActive]}>
+                        {opt === 'none'
+                          ? (language === 'zh' ? '默认' : 'Default')
+                          : opt === 'low-high'
+                            ? (language === 'zh' ? '低到高 ↑' : 'Low-High ↑')
+                            : (language === 'zh' ? '高到低 ↓' : 'High-Low ↓')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Date Sort */}
+                <Text style={[styles.filterLabel, { marginTop: spacing.md }]}>
+                  {language === 'zh' ? '日期排序' : 'Date Sort'}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  {(['none', 'earliest', 'latest'] as const).map((opt) => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.filterChip, dateSort === opt && styles.filterChipActive]}
+                      onPress={() => setDateSort(opt)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.filterChipText, dateSort === opt && styles.filterChipTextActive]}>
+                        {opt === 'none'
+                          ? (language === 'zh' ? '默认' : 'Default')
+                          : opt === 'earliest'
+                            ? (language === 'zh' ? '最早' : 'Earliest')
+                            : (language === 'zh' ? '最晚' : 'Latest')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* City Filter */}
+                <Text style={[styles.filterLabel, { marginTop: spacing.md }]}>
+                  {language === 'zh' ? '城市筛选' : 'City Filter'}
+                </Text>
+                <TextInput
+                  style={styles.filterCityInput}
+                  placeholder={language === 'zh' ? '输入城市名...' : 'Enter city name...'}
+                  placeholderTextColor={colors.textMuted}
+                  value={filterCity}
+                  onChangeText={setFilterCity}
+                />
+
+                {/* Reset */}
+                {hasActiveFilters && (
+                  <TouchableOpacity
+                    style={styles.resetBtn}
+                    onPress={resetFilters}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.resetBtnText}>
+                      {language === 'zh' ? '🔄 重置筛选' : '🔄 Reset Filters'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             {/* Quick Action Buttons */}
             <View style={styles.quickActions}>
               <TouchableOpacity
@@ -161,7 +325,7 @@ export default function HomeScreen() {
                 onPress={handlePlanTrip}
                 activeOpacity={0.85}
               >
-                <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
+                <View style={styles.quickActionIcon}>
                   <Text style={styles.quickActionEmoji}>→</Text>
                 </View>
                 <Text style={styles.quickActionLabel}>{t.home.planTrip}</Text>
@@ -171,7 +335,7 @@ export default function HomeScreen() {
                 onPress={handleFindBuddy}
                 activeOpacity={0.85}
               >
-                <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
+                <View style={styles.quickActionIcon}>
                   <Text style={styles.quickActionEmoji}>↗</Text>
                 </View>
                 <Text style={styles.quickActionLabel}>{t.home.findBuddy}</Text>
@@ -181,7 +345,7 @@ export default function HomeScreen() {
                 onPress={handleMemorial}
                 activeOpacity={0.85}
               >
-                <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
+                <View style={styles.quickActionIcon}>
                   <Text style={styles.quickActionEmoji}>◇</Text>
                 </View>
                 <Text style={styles.quickActionLabel}>{t.home.memorialText}</Text>
@@ -221,8 +385,12 @@ export default function HomeScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>—</Text>
-            <Text style={styles.emptyTitle}>{t.home.empty}</Text>
+            <Text style={styles.emptyIcon}>{searchQuery ? '🔍' : '—'}</Text>
+            <Text style={styles.emptyTitle}>
+              {searchQuery
+                ? (language === 'zh' ? '未找到匹配的活动' : 'No matching events found')
+                : t.home.empty}
+            </Text>
           </View>
         }
       />
@@ -291,6 +459,122 @@ function makeStyles(colors: typeof colorsLight) {
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
+  searchContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    paddingHorizontal: spacing.md,
+    height: 44,
+  },
+  searchIcon: {
+    fontSize: 15,
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.md,
+    color: colors.text,
+    paddingVertical: 0,
+  },
+  searchClear: {
+    fontSize: 16,
+    color: colors.textMuted,
+    paddingLeft: spacing.sm,
+  },
+  searchClearBtn: {
+    padding: spacing.xs,
+  },
+  filterBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
+  },
+  filterBtnActive: {
+    backgroundColor: colors.primary + '25',
+  },
+  filterBtnText: {
+    fontSize: 18,
+  },
+  filterBtnTextActive: {
+    color: colors.primary,
+  },
+  filterPanel: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  filterLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  filterChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  filterChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: `${colors.primary}15`,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: colors.primary,
+  },
+  filterCityInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.sm,
+    color: colors.text,
+    height: 40,
+  },
+  resetBtn: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  resetBtnText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
   quickActions: {
     flexDirection: 'row',
     paddingHorizontal: spacing.xl,
@@ -320,6 +604,7 @@ function makeStyles(colors: typeof colorsLight) {
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
+    backgroundColor: colors.primary + '28',
   },
   quickActionEmoji: {
     fontSize: 22,
