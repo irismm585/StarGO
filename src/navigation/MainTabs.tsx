@@ -56,6 +56,16 @@ function MainTabsContent() {
           tabBarLabel: t.tabs.home,
           tabBarIcon: ({ focused }) => <TabIcon emoji="—" focused={focused} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            const tabState = navigation.getState();
+            const homeRoute = tabState.routes.find(r => r.name === 'HomeTab');
+            if (homeRoute?.state?.index !== undefined && homeRoute.state.index > 0) {
+              e.preventDefault();
+              navigation.navigate('HomeTab', { screen: 'Home' });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="ItineraryTab"
@@ -72,6 +82,17 @@ function MainTabsContent() {
           tabBarLabel: t.tabs.community,
           tabBarIcon: ({ focused }) => <TabIcon emoji="○" focused={focused} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Reset ChatStack to ChatRoomList whenever community tab is tapped
+            const tabState = navigation.getState();
+            const chatRoute = tabState.routes.find(r => r.name === 'ChatTab');
+            if (chatRoute?.state?.index !== undefined && chatRoute.state.index > 0) {
+              e.preventDefault();
+              navigation.navigate('ChatTab', { screen: 'ChatRoomList' });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="MemorialTab"

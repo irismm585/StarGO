@@ -9,6 +9,11 @@ export interface BuddyProfile {
   age: number;
   interests: string[];
   interestsEn?: string[];
+  purpose: string[];
+  purposeEn?: string[];
+  travelStyle: string[];
+  travelStyleEn?: string[];
+  matchPercentage: number;
   isFriend: boolean;
   friendRequestStatus?: 'none' | 'pending' | 'accepted' | 'declined';
   bio?: string;

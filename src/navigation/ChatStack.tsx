@@ -6,7 +6,7 @@ import FindBuddyScreen from '../screens/home/FindBuddyScreen';
 
 export type ChatStackParamList = {
   ChatRoomList: undefined;
-  ChatRoom: { roomId: string; roomName: string };
+  ChatRoom: { roomId: string; roomName: string; isEventRoom?: boolean };
   FindBuddyFromChat: undefined;
 };
 

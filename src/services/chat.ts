@@ -21,7 +21,7 @@ const MOCK_ROOMS: ChatRoom[] = [
     type: 'artist',
     relatedEntity: 'Taylor Swift',
     memberCount: 15234,
-    isVerified: true,
+    isVerified: false,
     isJoined: false,
     createdAt: '2025-01-01T00:00:00Z',
     nameEn: 'Taylor Swift China Fan Club',
@@ -34,7 +34,7 @@ const MOCK_ROOMS: ChatRoom[] = [
     type: 'event',
     relatedEntity: '音乐节',
     memberCount: 8932,
-    isVerified: true,
+    isVerified: false,
     isJoined: false,
     createdAt: '2025-02-15T00:00:00Z',
     nameEn: 'Music Festival Buddy Finder',
@@ -47,7 +47,7 @@ const MOCK_ROOMS: ChatRoom[] = [
     type: 'venue',
     relatedEntity: '国家体育场',
     memberCount: 12567,
-    isVerified: true,
+    isVerified: false,
     isJoined: false,
     createdAt: '2025-03-01T00:00:00Z',
     nameEn: 'Bird\'s Nest Stadium Guide',
@@ -73,7 +73,7 @@ const MOCK_ROOMS: ChatRoom[] = [
     type: 'artist',
     relatedEntity: '周杰伦',
     memberCount: 21345,
-    isVerified: true,
+    isVerified: false,
     isJoined: false,
     createdAt: '2025-01-20T00:00:00Z',
     nameEn: 'Jay Chou Carnival Tour',
@@ -85,13 +85,18 @@ export async function getChatRooms(): Promise<ChatRoom[]> {
   const saved = await storage.get<ChatRoom[]>(STORAGE_KEYS.CHAT_ROOMS);
   if (saved) {
     // Merge saved join state with mock data
-    return MOCK_ROOMS.map((room) => {
+    const merged = MOCK_ROOMS.map((room) => {
       const savedRoom = saved.find((r) => r.id === room.id);
       return {
         ...room,
         isJoined: savedRoom?.isJoined ?? false,
       };
     });
+    // Also include dynamic rooms (like event group chats) that aren't in MOCK_ROOMS
+    const dynamicRooms = saved.filter(
+      (r) => !MOCK_ROOMS.some((mock) => mock.id === r.id)
+    );
+    return [...merged, ...dynamicRooms];
   }
   return MOCK_ROOMS;
 }
@@ -155,6 +160,49 @@ export async function sendMessage(
   await storage.set(key, messages);
 
   return { message, filterResult };
+}
+
+/**
+ * Get or create a chat room for an event.
+ * Ensures the same event always maps to the same room.
+ */
+export async function getOrCreateEventRoom(
+  event: { id: string; eventName: string; eventNameEn?: string; artistName: string; artistNameEn?: string; venueName: string; venueNameEn?: string; city: string; cityEn?: string },
+  userId: string,
+): Promise<ChatRoom> {
+  const eventRoomId = `event_room_${event.id}`;
+  const rooms = await storage.get<ChatRoom[]>(STORAGE_KEYS.CHAT_ROOMS) || [];
+  const existing = rooms.find((r) => r.id === eventRoomId);
+
+  if (existing) {
+    // Ensure the user is joined
+    if (!existing.isJoined) {
+      await joinRoom(eventRoomId, userId);
+    }
+    return { ...existing, isJoined: true };
+  }
+
+  // Create new room for this event
+  const newRoom: ChatRoom = {
+    id: eventRoomId,
+    name: event.eventName,
+    nameEn: event.eventNameEn,
+    description: `${event.artistName} @ ${event.venueName} · ${event.city}`,
+    descriptionEn: event.artistNameEn
+      ? `${event.artistNameEn} @ ${event.venueNameEn || event.venueName} · ${event.cityEn || event.city}`
+      : `${event.artistName} @ ${event.venueNameEn || event.venueName} · ${event.cityEn || event.city}`,
+    type: 'event',
+    relatedEntity: event.eventName,
+    memberCount: 1,
+    isVerified: true,
+    isJoined: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  rooms.push(newRoom);
+  await storage.set(STORAGE_KEYS.CHAT_ROOMS, rooms);
+
+  return newRoom;
 }
 
 export { checkForScalping as checkMessageContent };

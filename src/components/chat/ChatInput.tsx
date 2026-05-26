@@ -20,12 +20,10 @@ const EMOJIS = [
 
 interface ChatInputProps {
   onSend: (text: string) => void;
-  onPlanItinerary?: () => void;
-  onShareItinerary?: () => void;
   disabled?: boolean;
 }
 
-export default function ChatInput({ onSend, onPlanItinerary, onShareItinerary, disabled }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [text, setText] = useState('');
   const [warning, setWarning] = useState<string | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -87,20 +85,6 @@ export default function ChatInput({ onSend, onPlanItinerary, onShareItinerary, d
         >
           <Text style={styles.actionIcon}>😊</Text>
         </TouchableOpacity>
-
-        {/* Plan Itinerary */}
-        {onPlanItinerary && (
-          <TouchableOpacity onPress={onPlanItinerary} style={styles.actionButton}>
-            <Text style={styles.actionIcon}>📋</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Share Itinerary */}
-        {onShareItinerary && (
-          <TouchableOpacity onPress={onShareItinerary} style={styles.actionButton}>
-            <Text style={styles.actionIcon}>🎫</Text>
-          </TouchableOpacity>
-        )}
 
         <TextInput
           style={styles.input}

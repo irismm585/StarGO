@@ -27,8 +27,8 @@ export default function ChatRoomScreen() {
   const route = useRoute<RoomRoute>();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const { t } = useTranslation();
-  const { roomId, roomName } = route.params;
+  const { t, language } = useTranslation();
+  const { roomId, roomName, isEventRoom } = route.params;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,7 +134,22 @@ export default function ChatRoomScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title={roomName} showBack />
+      <Header
+        title={roomName}
+        showBack
+        onBack={() => navigation.navigate('ChatRoomList')}
+      />
+
+      {isEventRoom && (
+        <View style={styles.verifiedStrip}>
+          <View style={styles.verifiedBadgeSmall}>
+            <Text style={styles.verifiedBadgeIcon}>✓</Text>
+          </View>
+          <Text style={styles.verifiedStripText}>
+            {language === 'zh' ? '官方认证群聊' : 'Officially Verified Group'}
+          </Text>
+        </View>
+      )}
 
       {loading ? (
         <LoadingSpinner />
@@ -163,8 +178,6 @@ export default function ChatRoomScreen() {
 
       <ChatInput
         onSend={handleSend}
-        onPlanItinerary={handlePlanItinerary}
-        onShareItinerary={handleOpenShare}
       />
 
       {showSharePanel && (
@@ -182,6 +195,33 @@ export default function ChatRoomScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   messageList: { flex: 1 },
+  verifiedStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent + '40',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  verifiedBadgeSmall: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.verified,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verifiedBadgeIcon: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  verifiedStripText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.secondary,
+  },
   messageContent: {
     paddingVertical: spacing.lg,
     flexGrow: 1,

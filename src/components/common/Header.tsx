@@ -7,12 +7,15 @@ import { fontSize, spacing, borderRadius } from '../../constants/layout';
 interface HeaderProps {
   title: string;
   showBack?: boolean;
+  onBack?: () => void;
   rightAction?: React.ReactNode;
 }
 
-export default function Header({ title, showBack = false, rightAction }: HeaderProps) {
+export default function Header({ title, showBack = false, onBack, rightAction }: HeaderProps) {
   const { useNavigation } = require('@react-navigation/native');
   const navigation = useNavigation();
+
+  const handleBack = onBack || (() => navigation.goBack());
 
   return (
     <LinearGradient
@@ -24,7 +27,7 @@ export default function Header({ title, showBack = false, rightAction }: HeaderP
       <View style={styles.content}>
         <View style={styles.left}>
           {showBack && (
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
               <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
           )}

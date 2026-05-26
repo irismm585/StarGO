@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import { localizeEvent } from '../../utils/localization';
+import { getChatRooms } from '../../services/chat';
 import type { HomeStackParamList } from '../../navigation/HomeStack';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -42,6 +44,35 @@ export default function EventDetailScreen() {
         },
       },
     });
+  };
+
+  const handleFindBuddy = () => {
+    navigation.navigate('EventBuddy', { event: route.params.event });
+  };
+
+  const handleEnterGroupChat = async () => {
+    const original = route.params.event;
+    const eventRoomId = `event_room_${original.id}`;
+    try {
+      const rooms = await getChatRooms();
+      const existingRoom = rooms.find(r => r.id === eventRoomId && r.isJoined);
+      if (existingRoom) {
+        // Already joined → go directly to chat room
+        navigation.navigate('ChatTab', {
+          screen: 'ChatRoom',
+          params: {
+            roomId: existingRoom.id,
+            roomName: existingRoom.name,
+            isEventRoom: true,
+          },
+        });
+      } else {
+        // Need to verify first
+        navigation.navigate('EventChatAuth', { event: original });
+      }
+    } catch {
+      navigation.navigate('EventChatAuth', { event: original });
+    }
   };
 
   return (
@@ -115,12 +146,28 @@ export default function EventDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Action */}
+      {/* Bottom Actions */}
       <View style={styles.bottomBar}>
         <Button
           title={t.eventDetail.addToItinerary}
           onPress={handleAddToItinerary}
         />
+        <View style={styles.bottomDivider} />
+        <TouchableOpacity
+          style={styles.groupChatButton}
+          onPress={handleFindBuddy}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.groupChatButtonText}>{t.eventDetail.findBuddy}</Text>
+        </TouchableOpacity>
+        <View style={styles.bottomDivider} />
+        <TouchableOpacity
+          style={styles.groupChatButton}
+          onPress={handleEnterGroupChat}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.groupChatButtonText}>{t.eventDetail.enterGroupChat}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -204,5 +251,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  bottomDivider: {
+    height: spacing.sm,
+  },
+  groupChatButton: {
+    height: 52,
+    borderRadius: borderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xxl,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: 'transparent',
+  },
+  groupChatButtonText: {
+    color: colors.primary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });

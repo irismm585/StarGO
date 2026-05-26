@@ -141,6 +141,15 @@ export default function ChatRoomListScreen() {
         </View>
         <Text style={styles.cardDesc} numberOfLines={2}>{room.description}</Text>
         <View style={styles.cardFooter}>
+          {room.isVerified ? (
+            <View style={styles.verifiedTag}>
+              <Text style={styles.verifiedTagText}>{t.community.verified}</Text>
+            </View>
+          ) : (
+            <View style={styles.unverifiedTag}>
+              <Text style={styles.unverifiedTagText}>{t.community.unverified}</Text>
+            </View>
+          )}
           <Text style={styles.roomTypeBadge}>{getRoomTypeLabel(room.type)}</Text>
           <Text style={styles.memberCount}>{room.memberCount.toLocaleString()} {t.community.memberCount}</Text>
         </View>
@@ -312,6 +321,32 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     fontWeight: '600',
     overflow: 'hidden',
+  },
+  verifiedTag: {
+    backgroundColor: colors.verified + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.verified + '40',
+  },
+  verifiedTagText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: colors.verified,
+  },
+  unverifiedTag: {
+    backgroundColor: colors.textMuted + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.textMuted + '30',
+  },
+  unverifiedTagText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
   memberCount: {
     fontSize: fontSize.xs,

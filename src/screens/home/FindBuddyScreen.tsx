@@ -136,6 +136,12 @@ export default function FindBuddyScreen() {
     const isFriend = buddyItem.isFriend;
     const isPending = buddyItem.friendRequestStatus === 'pending';
 
+    const matchColor =
+      buddyItem.matchPercentage >= 90 ? colors.success
+        : buddyItem.matchPercentage >= 80 ? colors.primary
+        : buddyItem.matchPercentage >= 70 ? colors.warning
+        : colors.textMuted;
+
     return (
       <View style={styles.card}>
         <View style={styles.cardTop}>
@@ -143,7 +149,14 @@ export default function FindBuddyScreen() {
             <Text style={styles.avatar}>{localized.avatar}</Text>
           </View>
           <View style={styles.buddyInfo}>
-            <Text style={styles.buddyName}>{localized.name}</Text>
+            <View style={styles.buddyNameRow}>
+              <Text style={styles.buddyName}>{localized.name}</Text>
+              <View style={[styles.matchBadge, { backgroundColor: matchColor + '18', borderColor: matchColor + '40' }]}>
+                <Text style={[styles.matchText, { color: matchColor }]}>
+                  {buddyItem.matchPercentage}% {t.community.match}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.buddyBio} numberOfLines={1}>
               {localized.bio}
             </Text>
@@ -242,6 +255,24 @@ export default function FindBuddyScreen() {
           {localized.interests.map((interest, idx) => (
             <View key={idx} style={styles.interestBadge}>
               <Text style={styles.interestText}>{interest}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.purposeRow}>
+          <Text style={styles.detailLabel}>{t.community.purpose}：</Text>
+          {localized.purpose.map((p, idx) => (
+            <View key={idx} style={styles.purposeBadge}>
+              <Text style={styles.purposeText}>{p}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.styleRow}>
+          <Text style={styles.detailLabel}>{t.community.travelStyle}：</Text>
+          {localized.travelStyle.map((s, idx) => (
+            <View key={idx} style={styles.styleBadge}>
+              <Text style={styles.styleText}>{s}</Text>
             </View>
           ))}
         </View>
@@ -513,6 +544,62 @@ const styles = StyleSheet.create({
   interestText: {
     fontSize: fontSize.xs,
     color: colors.primary,
+    fontWeight: '600',
+  },
+  buddyNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: 2,
+  },
+  matchBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+  },
+  matchText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  purposeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  purposeBadge: {
+    backgroundColor: colors.accent + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.accent + '30',
+  },
+  purposeText: {
+    fontSize: fontSize.xs,
+    color: '#4C1D95',
+    fontWeight: '600',
+  },
+  styleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  styleBadge: {
+    backgroundColor: colors.verified + '18',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.verified + '30',
+  },
+  styleText: {
+    fontSize: fontSize.xs,
+    color: colors.verified,
     fontWeight: '600',
   },
   emptyContainer: {
